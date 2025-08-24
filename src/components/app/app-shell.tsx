@@ -37,6 +37,7 @@ import { logout } from "@/lib/auth-actions";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { TaskSummaryDialog } from "./task-summary-dialog";
+import { Button } from "../ui/button";
 
 export function AppShell({
   children,
