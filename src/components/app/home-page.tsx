@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useTransition, startTransition } from "react";
+import { useState, startTransition } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,12 @@ import { AppHeader } from "@/components/app/header";
 import { AddTaskDialog } from "@/components/app/add-task-dialog";
 import { TaskList } from "@/components/app/task-list";
 import { SmartTaskInput } from "@/components/app/smart-task-input";
-import type { Task } from "@/lib/types";
+import type { Task, Session } from "@/lib/types";
 import { CreateTaskFromNaturalLanguageOutput } from "@/ai/flows/natural-language-task-creation";
 import { addTask, deleteTask, toggleTaskStatus, updateTask } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 
-export default function HomePage({ serverTasks }: { serverTasks: Task[] }) {
+export default function HomePage({ serverTasks, session }: { serverTasks: Task[], session: Session | null }) {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>(serverTasks);
   const [isAddTaskOpen, setAddTaskOpen] = useState(false);
@@ -69,6 +70,7 @@ export default function HomePage({ serverTasks }: { serverTasks: Task[] }) {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <AppHeader
         tasks={tasks}
+        session={session}
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-4xl">

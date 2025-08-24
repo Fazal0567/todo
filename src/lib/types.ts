@@ -1,8 +1,8 @@
+
 import { ObjectId } from "mongodb";
 
 export type Task = {
   id: string;
-  _id?: ObjectId;
   title: string;
   description?: string;
   priority: 'High' | 'Medium' | 'Low';
@@ -13,3 +13,20 @@ export type Task = {
 export type TaskSummary = {
   summary: string;
 };
+
+// Raw document from MongoDB
+export type TaskDocument = Omit<Task, "id">;
+
+
+export type User = {
+  id: string;
+  email: string;
+  password?: string; // Should be optional as we don't always send it
+};
+
+export type UserDocument = Omit<User, "id">;
+
+export interface Session {
+  userId: string;
+  email: string;
+}
