@@ -37,7 +37,7 @@ export async function login(credentials: unknown) {
       return { success: false, error: "Invalid password." };
     }
 
-    await createSession(user.id.toString(), user.email);
+    await createSession(user._id.toString());
 
     return { success: true };
   } catch (error) {
@@ -62,7 +62,7 @@ export async function signup(userData: unknown) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await createUser({ email, password: hashedPassword });
+    await createUser({ email, password: hashedPassword, displayName: email.split('@')[0] });
 
     return { success: true };
   } catch (error) {
@@ -72,5 +72,5 @@ export async function signup(userData: unknown) {
 }
 
 export async function logout() {
-  await deleteSession();
+  deleteSession();
 }

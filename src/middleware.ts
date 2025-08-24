@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-client";
 
 const publicRoutes = ["/login", "/signup"];
 

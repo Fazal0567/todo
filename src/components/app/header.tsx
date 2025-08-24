@@ -50,13 +50,16 @@ export function AppHeader({
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login");
-    router.refresh();
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
+    router.push("/login");
+    router.refresh();
   };
+  
+  const displayName = session?.displayName || session?.email;
+  const fallback = displayName ? displayName[0].toUpperCase() : "?";
   
   return (
     <>
@@ -82,8 +85,8 @@ export function AppHeader({
                     className="relative h-8 w-8 rounded-full"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="/avatars/01.png" alt={session.email} />
-                      <AvatarFallback>{session.email[0].toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={`https://placehold.co/100x100.png`} alt={displayName} />
+                      <AvatarFallback>{fallback}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -91,8 +94,9 @@ export function AppHeader({
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {session.email}
+                        {displayName}
                       </p>
+                       {session.displayName && <p className="text-xs text-muted-foreground">{session.email}</p>}
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

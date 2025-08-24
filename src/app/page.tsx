@@ -1,6 +1,6 @@
 
 import { getTasks } from "@/lib/actions";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-client";
 import { redirect } from "next/navigation";
 import HomePage from "@/components/app/home-page";
 
