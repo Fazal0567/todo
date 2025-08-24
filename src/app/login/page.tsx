@@ -53,8 +53,8 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      router.push(redirectTo || "/");
-      router.refresh(); 
+      // A hard redirect is better here to ensure middleware runs with the new cookie.
+      window.location.href = redirectTo || "/";
     } else {
       toast({
         variant: "destructive",

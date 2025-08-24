@@ -17,6 +17,7 @@ import Link from "next/link";
 import { InviteUserForm } from "./invite-user-form";
 import { LeaveRoomButton } from "./leave-room-button";
 import { getNotifications } from "@/lib/notification-actions";
+import { Header } from "@radix-ui/react-accordion";
 
 
 export default async function RoomPage({
@@ -98,7 +99,7 @@ export default async function RoomPage({
             <CardHeader>
                 <CardTitle>Room Actions</CardTitle>
                 <CardDescription>Manage your membership in this room.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
                 <LeaveRoomButton roomId={roomId} roomName={room.name} />
             </CardContent>
