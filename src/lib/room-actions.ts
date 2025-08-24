@@ -37,7 +37,7 @@ function toRoomObject(doc: WithId<RoomDocument>): Room {
 export async function createRoom(name: string) {
   const session = await getSession();
   if (!session) {
-    throw new Error("Authentication required.");
+    return { success: false, error: "Authentication required." };
   }
 
   try {
@@ -46,7 +46,7 @@ export async function createRoom(name: string) {
     // Check if a room with the same name already exists for this user
     const existingRoom = await collection.findOne({ name, userIds: session.userId });
     if (existingRoom) {
-      throw new Error(`You already have a room named "${name}".`);
+      return { success: false, error: `You already have a room named "${name}".` };
     }
 
     const newRoom: RoomDocument = {
@@ -55,20 +55,19 @@ export async function createRoom(name: string) {
     };
     const result = await collection.insertOne(newRoom);
     
-    if (result.insertedId) {
-      revalidatePath("/");
-      revalidatePath(`/rooms/${result.insertedId.toHexString()}`);
-      redirect(`/rooms/${result.insertedId.toHexString()}`);
-    } else {
-      throw new Error("Failed to create room.");
+    if (!result.insertedId) {
+       return { success: false, error: "Failed to create room." };
     }
+    
+    const newRoomId = result.insertedId.toHexString();
+    revalidatePath("/");
+    revalidatePath(`/rooms/${newRoomId}`);
+    redirect(`/rooms/${newRoomId}`);
+
   } catch (error) {
     console.error("Database Error: Failed to create room.", error);
-    // Re-throw the error to be caught by the client
-    if (error instanceof Error) {
-        throw new Error(error.message);
-    }
-    throw new Error("Could not create room.");
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    return { success: false, error: errorMessage };
   }
 }
 

@@ -34,16 +34,16 @@ export function CreateRoomForm() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
-      try {
-        await createRoom(values.name);
-        toast({ title: "Success", description: "New room created!" });
-        form.reset();
-      } catch (error) {
-        toast({
+      const result = await createRoom(values.name);
+      if (result?.error) {
+         toast({
           variant: "destructive",
           title: "Error Creating Room",
-          description: (error as Error).message,
+          description: result.error,
         });
+      } else {
+        toast({ title: "Success", description: "New room created!" });
+        form.reset();
       }
     });
   };
