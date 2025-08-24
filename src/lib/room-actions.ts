@@ -139,7 +139,7 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
     }
     
     const userToAddId = userToAdd._id.toHexString();
-    if (roomToTUpdate.userIds.includes(userToAddId)) {
+    if (roomToUpdate.userIds.includes(userToAddId)) {
       // This is not an error, just means they are already in.
       // We can return success to allow the page to load for them.
       return { success: true, message: "User is already in this room." };
