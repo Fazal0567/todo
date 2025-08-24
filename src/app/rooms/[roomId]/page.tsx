@@ -54,6 +54,7 @@ export default async function RoomPage({
   await joinRoomViaLink(roomId);
 
   const room = await getRoom(roomId, session.userId);
+  
   if (!room) {
     return (
        <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -71,7 +72,7 @@ export default async function RoomPage({
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   const [tasks, rooms, notifications] = await Promise.all([
