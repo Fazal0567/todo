@@ -54,6 +54,28 @@ export async function getUserById(userId: string): Promise<User | null> {
   };
 }
 
+export async function getUsersByIds(userIds: string[]): Promise<User[]> {
+  if (!userIds || userIds.length === 0) {
+    return [];
+  }
+  const collection = await getUsersCollection();
+  const objectIds = userIds.map(id => ObjectId.isValid(id) ? new ObjectId(id) : null).filter((id): id is ObjectId => id !== null);
+
+  if (objectIds.length === 0) {
+      return [];
+  }
+  
+  const usersFromDb = await collection.find({ _id: { $in: objectIds } }).toArray();
+
+  return usersFromDb.map(user => {
+    const { _id, password, ...userWithoutSensitiveInfo } = user;
+    return {
+      id: _id.toHexString(),
+      ...userWithoutSensitiveInfo,
+    };
+  });
+}
+
 
 export async function updateUserAccount(userId: string, data: { email?: string; password?: string }) {
   if (!ObjectId.isValid(userId)) {

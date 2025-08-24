@@ -7,7 +7,7 @@ import clientPromise from "@/lib/mongodb";
 import type { Room, RoomDocument } from "./types";
 import { getSession } from "./auth-client";
 import { redirect } from "next/navigation";
-import { getUserByEmail, getUserById } from "./user-actions";
+import { getUserByEmail, getUserById, getUsersByIds } from "./user-actions";
 import { createNotification } from "./notification-actions";
 
 
@@ -80,12 +80,21 @@ export async function getUserRooms(userId: string): Promise<Room[]> {
   try {
     const collection = await getRoomsCollection();
     const roomsFromDb = await collection.find({ userIds: userId }).sort({ name: 1 }).toArray();
-    return roomsFromDb.map(toRoomObject);
+    const rooms = roomsFromDb.map(toRoomObject);
+
+    // For each room, fetch member details
+    const roomsWithMembers = await Promise.all(rooms.map(async (room) => {
+        const members = await getUsersByIds(room.userIds);
+        return { ...room, members };
+    }));
+    
+    return roomsWithMembers;
   } catch (error) {
     console.error("Database Error: Failed to fetch user rooms.", error);
     return [];
   }
 }
+
 
 export async function getRoom(roomId: string, userId: string): Promise<Room | null> {
    if (!ObjectId.isValid(roomId)) {

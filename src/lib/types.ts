@@ -22,9 +22,10 @@ export type Room = {
   id: string;
   name: string;
   userIds: string[];
+  members?: User[];
 };
 
-export type RoomDocument = Omit<Room, "id">;
+export type RoomDocument = Omit<Room, "id" | "members">;
 
 
 export type User = {

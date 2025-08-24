@@ -24,6 +24,7 @@ import {
   Settings,
   LogOut,
   Share2,
+  Users,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +36,10 @@ import { AddRoomDialog } from "./add-room-dialog";
 import { TaskSummaryDialog } from "./task-summary-dialog";
 import { Button } from "../ui/button";
 import { NotificationPopover } from "./notification-popover";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { cn } from "@/lib/utils";
+
 
 export function AppShell({
   children,
@@ -109,15 +114,45 @@ export function AppShell({
             </SidebarMenuItem>
             <SidebarGroup>
               <SidebarGroupLabel>Your Rooms</SidebarGroupLabel>
-              <SidebarMenuSub>
+              <SidebarMenuSub className="gap-0 p-0 border-none">
                 {rooms.map((room) => (
                   <li key={room.id}>
-                    <SidebarMenuSubButton
-                      href={`/rooms/${room.id}`}
-                      isActive={pathname.includes(`/rooms/${room.id}`)}
-                    >
-                      {room.name}
-                    </SidebarMenuSubButton>
+                    <Collapsible>
+                      <div className={cn("flex items-center w-full", pathname.includes(`/rooms/${room.id}`) && "bg-sidebar-accent rounded-md")}>
+                        <SidebarMenuSubButton
+                          href={`/rooms/${room.id}`}
+                          isActive={pathname.includes(`/rooms/${room.id}`)}
+                          className="flex-1"
+                        >
+                          {room.name}
+                        </SidebarMenuSubButton>
+                        {room.members && room.members.length > 1 && (
+                           <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 mr-1">
+                                  <Users className="h-4 w-4" />
+                                  <span className="sr-only">Toggle members</span>
+                              </Button>
+                          </CollapsibleTrigger>
+                        )}
+                      </div>
+                      <CollapsibleContent>
+                        <ul className="pl-6 pr-2 py-1 space-y-1 border-l border-sidebar-border ml-3 my-1">
+                          {room.members?.map(member => {
+                            const displayName = member.displayName || member.email;
+                            const firstLetter = displayName ? displayName[0].toUpperCase() : "?";
+                            return (
+                               <li key={member.id} className="flex items-center gap-2 text-sm text-sidebar-foreground/80">
+                                   <Avatar className="h-5 w-5">
+                                      <AvatarImage src={member.avatarUrl || `https://placehold.co/100x100.png?text=${firstLetter}`} alt={displayName} />
+                                      <AvatarFallback>{firstLetter}</AvatarFallback>
+                                  </Avatar>
+                                  <span>{displayName}</span>
+                               </li>
+                            )
+                          })}
+                        </ul>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </li>
                 ))}
               </SidebarMenuSub>
