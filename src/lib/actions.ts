@@ -147,7 +147,7 @@ export async function toggleTaskStatus(taskId: string, currentStatus: "pending" 
       return { success: true, data: toTaskObject(updatedTask) };
     }
     return { success: false, error: "Task not found after update." };
-  } catch (error)_id
+  } catch (error) {
     console.error("Database Error: Failed to update task status.", error);
     return { success: false, error: "Failed to update task status." };
   }
