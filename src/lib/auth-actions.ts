@@ -3,8 +3,9 @@
 
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { createUser, getUserByEmail } from "./user-actions";
-import { createSession, deleteSession } from "./auth";
+import { createUser, getUserByEmail, getUserById } from "./user-actions";
+import { deleteSession, encrypt } from "./auth";
+import { cookies } from "next/headers";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -15,6 +16,23 @@ const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
+
+export async function createSession(userId: string) {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error("User not found for session creation.");
+  }
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  const sessionPayload = { userId, email: user.email, displayName: user.displayName, expires };
+  const session = await encrypt(sessionPayload);
+
+  cookies().set("session", session, {
+    expires,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+}
 
 export async function login(credentials: unknown) {
   const parsedCredentials = loginSchema.safeParse(credentials);

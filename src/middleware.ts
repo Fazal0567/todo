@@ -1,10 +1,11 @@
+
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/auth-client";
+import { getSessionFromCookie } from "@/lib/auth";
 
 const publicRoutes = ["/login", "/signup"];
 
 export async function middleware(request: NextRequest) {
-  const session = await getSession();
+  const session = await getSessionFromCookie();
   const { pathname, origin } = request.nextUrl;
 
   const isPublicRoute = publicRoutes.includes(pathname);

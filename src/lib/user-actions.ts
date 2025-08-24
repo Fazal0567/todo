@@ -6,7 +6,7 @@ import { Collection, ObjectId } from "mongodb";
 import type { User, UserDocument } from "./types";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-import { createSession } from "./auth";
+import { createSession } from "./auth-actions";
 
 
 let usersCollection: Collection<UserDocument>;

@@ -1,7 +1,7 @@
+
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { getUserById } from "./user-actions";
 
 const secretKey = process.env.SESSION_SECRET || "your-default-secret-key";
 const key = new TextEncoder().encode(secretKey);
@@ -33,29 +33,22 @@ export async function decrypt(input: string): Promise<SessionPayload | null> {
   }
 }
 
-export async function createSession(userId: string) {
-  const user = await getUserById(userId);
-  if (!user) {
-    throw new Error("User not found for session creation.");
-  }
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  const sessionPayload = { userId, email: user.email, displayName: user.displayName, expires };
-  const session = await encrypt(sessionPayload);
-
-  cookies().set("session", session, {
-    expires,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-  });
-}
-
+// This function is intended for server-side use where database access is safe.
 export async function getSession(): Promise<SessionPayload | null> {
   const sessionCookie = cookies().get("session")?.value;
   if (!sessionCookie) return null;
 
   return await decrypt(sessionCookie);
 }
+
+// This function is specifically for the middleware, which runs in the Edge runtime.
+// It avoids any database calls or other Node.js-specific APIs.
+export async function getSessionFromCookie(): Promise<SessionPayload | null> {
+  const sessionCookie = cookies().get("session")?.value;
+  if (!sessionCookie) return null;
+  return await decrypt(sessionCookie);
+}
+
 
 export function deleteSession() {
   cookies().set("session", "", { expires: new Date(0), path: "/" });
