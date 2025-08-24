@@ -72,5 +72,5 @@ export async function signup(userData: unknown) {
 }
 
 export async function logout() {
-  deleteSession();
+  await deleteSession();
 }

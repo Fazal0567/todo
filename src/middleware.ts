@@ -1,25 +1,26 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/auth";
 
-const protectedRoutes = ["/"];
 const publicRoutes = ["/login", "/signup"];
 
 export async function middleware(request: NextRequest) {
   const session = await getSession();
-  const isProtectedRoute = protectedRoutes.some((prefix) =>
-    request.nextUrl.pathname.startsWith(prefix)
-  );
+  const { pathname, origin } = request.nextUrl;
 
-  if (!session && isProtectedRoute) {
-    const absoluteURL = new URL("/login", request.nextUrl.origin);
-    return NextResponse.redirect(absoluteURL.toString());
+  const isPublicRoute = publicRoutes.includes(pathname);
+
+  // 🔒 If user is NOT logged in & trying to access a protected route → send to /login
+  if (!session && !isPublicRoute) {
+    return NextResponse.redirect(new URL("/login", origin));
   }
 
-  if (session && publicRoutes.includes(request.nextUrl.pathname)) {
-     const absoluteURL = new URL("/", request.nextUrl.origin);
-    return NextResponse.redirect(absoluteURL.toString());
+  // 🔓 If user IS logged in & tries to access a public route → send to home
+  if (session && isPublicRoute) {
+    return NextResponse.redirect(new URL("/", origin));
   }
+
+  // ✅ Otherwise, continue
+  return NextResponse.next();
 }
 
 export const config = {

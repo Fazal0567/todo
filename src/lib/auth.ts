@@ -1,4 +1,3 @@
-
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -25,9 +24,8 @@ export async function decrypt(input: string): Promise<SessionPayload | null> {
     const { payload } = await jwtVerify(input, key, {
       algorithms: ["HS256"],
     });
-    return payload as SessionPayload;
+    return payload as unknown as SessionPayload;
   } catch (error) {
-    // This can happen if the token is expired or invalid
     console.error("JWT Decryption Error:", error);
     return null;
   }
@@ -53,7 +51,7 @@ export async function getSession(): Promise<SessionPayload | null> {
 }
 
 export async function deleteSession() {
-  cookies().delete("session");
+  cookies().set("session", "", { expires: new Date(0) });
 }
 
 export async function updateSession(request: NextRequest) {
@@ -69,6 +67,7 @@ export async function updateSession(request: NextRequest) {
       value: await encrypt(parsed),
       httpOnly: true,
       expires: parsed.expires,
+      path: "/",
     });
     return res;
   }
