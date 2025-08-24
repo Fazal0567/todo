@@ -13,20 +13,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function ProfilePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
       const sessionData = await getSession();
       setSession(sessionData);
+
       if (sessionData?.userId) {
         const userData = await getUserById(sessionData.userId);
         setUser(userData);
       }
+      setIsLoading(false);
     }
     loadData();
   }, []);
 
-  if (!session || !user) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen w-full flex-col bg-background">
         <AppHeader tasks={[]} session={session} />
@@ -40,11 +44,15 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <Skeleton className="h-16 w-16 rounded-full" />
-                  <div>
-                    <Skeleton className="h-6 w-48 mb-2" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-48" />
                     <Skeleton className="h-4 w-64" />
                   </div>
                 </div>
+                 <div className="pt-4 space-y-2 text-sm">
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
               </CardContent>
             </Card>
           </div>
@@ -53,7 +61,22 @@ export default function ProfilePage() {
     );
   }
   
-  const displayName = session.displayName || user.displayName || user.email;
+  if (!session || !user) {
+    // This state could be hit if the session is lost or user can't be fetched.
+    // You could show a message or redirect. For now, showing a simple message.
+    return (
+      <div className="flex min-h-screen w-full flex-col bg-background">
+         <AppHeader tasks={[]} session={session} />
+         <main className="flex-1 p-4 sm:p-6 md:p-8">
+           <div className="mx-auto max-w-4xl text-center">
+             <p>Could not load user profile. Please try logging in again.</p>
+           </div>
+         </main>
+      </div>
+    );
+  }
+
+  const displayName = user.displayName || user.email;
   const firstLetter = displayName ? displayName[0].toUpperCase() : "?";
 
   return (
@@ -70,19 +93,33 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>User Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={`https://placehold.co/100x100.png`} alt={displayName} />
+                  <AvatarImage
+                    src={user.avatarUrl || `https://placehold.co/100x100.png?text=${firstLetter}`}
+                    alt={displayName}
+                  />
                   <AvatarFallback>{firstLetter}</AvatarFallback>
                 </Avatar>
                 <div>
-                   <p className="text-xl font-semibold">{displayName}</p>
-                   <p className="text-md text-muted-foreground">{user.email}</p>
-                   <p className="text-sm text-muted-foreground pt-2">
-                    User ID: {user.id}
+                  <p className="text-xl font-semibold">{displayName}</p>
+                  <p className="text-md text-muted-foreground">
+                    {user.email}
                   </p>
                 </div>
+              </div>
+
+              <div className="pt-4 space-y-2 text-sm">
+                <p>
+                  <span className="font-medium">Email:</span> {user.email}
+                </p>
+                <p>
+                  <span className="font-medium">User ID:</span> {user.id}
+                </p>
+                <p>
+                  <span className="font-medium">Email Notifications:</span> {user.emailNotifications ? 'Enabled' : 'Disabled'}
+                </p>
               </div>
             </CardContent>
           </Card>

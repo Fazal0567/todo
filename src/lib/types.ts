@@ -19,6 +19,7 @@ export type TaskDocument = Omit<Task, "id">;
 
 
 export type User = {
+  avatarUrl: string;
   id: string;
   email: string;
   password?: string; // Should be optional as we don't always send it
