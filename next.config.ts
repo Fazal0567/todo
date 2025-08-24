@@ -1,8 +1,9 @@
-import type {NextConfig} from 'next';
-require('dotenv').config({ path: './.env' });
+import type { NextConfig } from "next";
+import dotenv from "dotenv";
+
+dotenv.config({ path: "./.env" });
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -12,12 +13,26 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "placehold.co",
+        port: "",
+        pathname: "/**",
       },
     ],
+  },
+  experimental: {
+    serverComponentsExternalPackages: ["handlebars"],
+    esmExternals: "loose",
+  },
+  webpack: (config) => {
+    // Prevent "require.extensions" issue with handlebars/dotprompt
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      os: false,
+    };
+    return config;
   },
 };
 

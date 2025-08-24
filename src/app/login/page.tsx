@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -27,7 +26,8 @@ const formSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
-export default function LoginPage() {
+// ✅ Wraps login form in Suspense-safe component
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo");
@@ -53,7 +53,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      // A hard redirect is better here to ensure middleware runs with the new cookie.
+      // Hard redirect ensures middleware re-runs with new cookie
       window.location.href = redirectTo || "/";
     } else {
       toast({
@@ -65,12 +65,70 @@ export default function LoginPage() {
   }
 
   return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="user@example.com"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Signing In..." : "Sign In"}
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href={`/signup${redirectTo ? `?redirectTo=${redirectTo}` : ""}`}
+            className="font-semibold text-primary hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
+      </form>
+    </Form>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-            <div className="flex justify-center items-center mb-4">
-               <Logo className="h-8 w-8 text-primary" />
-            </div>
+          <div className="flex justify-center items-center mb-4">
+            <Logo className="h-8 w-8 text-primary" />
+          </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Welcome Back
           </h1>
@@ -78,58 +136,11 @@ export default function LoginPage() {
             Sign in to continue to CollabTaskAI.
           </p>
         </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="user@example.com"
-                      {...field}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      {...field}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing In..." : "Sign In"}
-            </Button>
-          </form>
-        </Form>
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link
-            href={`/signup${redirectTo ? `?redirectTo=${redirectTo}` : ''}`}
-            className="font-semibold text-primary hover:underline"
-          >
-            Sign up
-          </Link>
-        </p>
+
+        {/* ✅ Suspense wrapper fixes Next.js build error */}
+        <Suspense fallback={<div>Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
