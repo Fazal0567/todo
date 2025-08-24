@@ -1,4 +1,7 @@
 import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI". Please check your .env file.');
@@ -32,10 +35,9 @@ if (process.env.NODE_ENV === 'development') {
   try {
     client = new MongoClient(uri, options);
     clientPromise = client.connect();
-  } catch (e) { {
+  } catch (e) { 
       console.error("Failed to connect to MongoDB", e);
       throw new Error("Failed to connect to MongoDB. Please ensure the database server is running and the MONGODB_URI is correct.");
-    }
   }
 }
 
