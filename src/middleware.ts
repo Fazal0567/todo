@@ -1,33 +1,33 @@
-
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionFromCookie } from "@/lib/auth";
 
-const publicRoutes = ["/login", "/signup"]; 
+const publicRoutes = ["/login", "/signup"];
 
 export async function middleware(request: NextRequest) {
-  const session = await getSessionFromCookie();
   const { pathname, origin } = request.nextUrl;
 
+  // ✅ Read cookie directly from request
+  const session = request.cookies.get("session")?.value; // ya jo bhi tumhari cookie key hai
+
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
-  
-  // 🔓 If user IS logged in & tries to access a public route (like /login) → send to home
+
+  // 🔓 If logged in & on login/signup → send to home
   if (session && isPublicRoute) {
     return NextResponse.redirect(new URL("/", origin));
   }
-  
-  // Allow accessing a specific room page even if not a member yet,
-  // as the page itself handles logic for joining or viewing.
-  if (pathname.startsWith('/rooms/')) {
-      return NextResponse.next();
+
+  // ✅ Allow direct access to /rooms/:id (join logic handled inside page)
+  if (pathname.startsWith("/rooms/")) {
+    return NextResponse.next();
   }
 
-  // 🔒 If user is NOT logged in & trying to access a protected route → send to /login
+  // 🔒 If NOT logged in & route is protected → redirect to login WITH redirectTo param
   if (!session && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", origin));
+    const loginUrl = new URL("/login", origin);
+    loginUrl.searchParams.set("redirectTo", pathname); // preserve path
+    return NextResponse.redirect(loginUrl);
   }
 
-
-  // ✅ Otherwise, continue
+  // ✅ Otherwise continue
   return NextResponse.next();
 }
 
