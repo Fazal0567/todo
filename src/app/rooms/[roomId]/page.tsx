@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth-client";
 import { AppShell } from "@/components/app/app-shell";
 import { getUserRooms, getRoom, joinRoomViaLink } from "@/lib/room-actions";
 import { redirect } from "next/navigation";
-import HomePage from "@/components/app/home-page";
+import TaskManagementPage from "@/components/app/home-page";
 import {
   Card,
   CardContent,
@@ -103,7 +103,7 @@ export default async function RoomPage({
             </CardContent>
         </Card>
       </div>
-      <HomePage serverTasks={tasks} session={session} />
+      <TaskManagementPage serverTasks={tasks} session={session} />
     </AppShell>
   );
 }
