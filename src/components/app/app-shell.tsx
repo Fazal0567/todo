@@ -39,6 +39,7 @@ import { NotificationPopover } from "./notification-popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { cn } from "@/lib/utils";
+import { Logo } from "./logo";
 
 
 export function AppShell({
@@ -91,7 +92,7 @@ export function AppShell({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2">
-            <SidebarTrigger />
+             <Logo className="w-5 h-5 text-primary" />
             <h1 className="text-lg font-semibold">CollabTaskAI</h1>
           </div>
         </SidebarHeader>
@@ -187,8 +188,10 @@ export function AppShell({
         </SidebarFooter>
       </Sidebar>
       <main className="lg:ml-[var(--sidebar-width)]">
-        <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 lg:px-6">
-            <div className="flex flex-1 items-center justify-end space-x-2">
+        <header className="flex h-14 items-center justify-between gap-2 border-b bg-background px-4 lg:px-6">
+            <SidebarTrigger className="lg:hidden" />
+            <div className="flex-1" />
+            <div className="flex items-center space-x-2">
               <NotificationPopover notifications={notifications} />
               {session && tasks.length > 0 && <TaskSummaryDialog tasks={tasks} />}
                <Button variant="ghost" size="icon" onClick={handleShare}>
