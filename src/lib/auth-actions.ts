@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from "zod";
@@ -53,11 +54,11 @@ export async function login(credentials: unknown) {
 
   try {
     const user = await getUserByEmail(email);
-    if (!user) {
+    if (!user || !user.password) {
       return { success: false, error: "No user found with this email." };
     }
 
-    const match = bcrypt.compare(password, user.password); // ✅ FIXED
+    const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return { success: false, error: "Invalid password." };
     }
