@@ -18,9 +18,6 @@ import dotenv from 'dotenv';
 let tasksCollection: Collection<Omit<Task, 'id'>>;
 
 async function getTasksCollection() {
-  // Explicitly load environment variables just before they are needed.
-  dotenv.config({ path: './.env' });
-
   if (tasksCollection) {
     return tasksCollection;
   }
@@ -31,7 +28,7 @@ async function getTasksCollection() {
     return tasksCollection;
   } catch (error) {
      console.error("Database connection failed:", error);
-     throw new Error("Could not connect to the database. Please ensure it is running and the connection URI is correct.");
+     throw new Error("Could not connect to the database. Please check your connection string and ensure the database server is running.");
   }
 }
 
@@ -42,8 +39,6 @@ export async function getTasks(): Promise<Task[]> {
     return tasks.map(task => ({ ...task, id: task._id.toHexString() }));
   } catch (error) {
     console.error("Database Error: Failed to fetch tasks.", error);
-    // In case of a database error, return an empty array to prevent the app from crashing.
-    // A more robust solution might involve showing an error message to the user.
     return [];
   }
 }
@@ -57,7 +52,7 @@ export async function addTask(taskData: Omit<Task, "id" | "status">) {
     revalidatePath("/");
   } catch (error) {
     console.error("Database Error: Failed to add task.", error);
-    throw new Error("Could not connect to the database. Please ensure it is running.");
+    throw new Error("Could not add task. Please ensure the database is connected and running.");
   }
 }
 

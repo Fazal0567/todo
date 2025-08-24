@@ -1,7 +1,10 @@
 import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: './.env' });
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI". Please check your .env file and ensure it is available to the running process.');
+  throw new Error('The MONGODB_URI environment variable is missing. Please check your .env file.');
 }
 
 const uri = process.env.MONGODB_URI;
