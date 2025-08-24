@@ -4,30 +4,27 @@ const publicRoutes = ["/login", "/signup"];
 
 export async function middleware(request: NextRequest) {
   const { pathname, origin } = request.nextUrl;
-
-  // ✅ Read cookie directly from request
-  const session = request.cookies.get("session")?.value; // ya jo bhi tumhari cookie key hai
+  const session = request.cookies.get("session")?.value; // ✅ read directly
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
-  // 🔓 If logged in & on login/signup → send to home
+  // If logged in & on /login or /signup → redirect home
   if (session && isPublicRoute) {
     return NextResponse.redirect(new URL("/", origin));
   }
 
-  // ✅ Allow direct access to /rooms/:id (join logic handled inside page)
+  // Allow joining rooms even if not yet a member
   if (pathname.startsWith("/rooms/")) {
     return NextResponse.next();
   }
 
-  // 🔒 If NOT logged in & route is protected → redirect to login WITH redirectTo param
+  // If not logged in & accessing protected route → redirect to /login?redirectTo=...
   if (!session && !isPublicRoute) {
     const loginUrl = new URL("/login", origin);
-    loginUrl.searchParams.set("redirectTo", pathname); // preserve path
+    loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // ✅ Otherwise continue
   return NextResponse.next();
 }
 

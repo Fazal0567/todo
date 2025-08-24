@@ -1,4 +1,3 @@
-
 "use server";
 
 import { z } from "zod";
@@ -22,36 +21,35 @@ export async function createSession(userId: string) {
   if (!user) {
     throw new Error("User not found for session creation.");
   }
+
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  
-  // Note: Storing large data like a Base64 avatar in a cookie is not recommended.
-  // This is a simplified approach. In a production app, store the avatar in a
-  // cloud storage service and save only the URL in the session.
-  const sessionPayload = { 
-      userId, 
-      email: user.email, 
-      displayName: user.displayName, 
-      avatarUrl: user.avatarUrl,
-      expires 
-    };
-  const session = await encrypt(sessionPayload);
+
+  const sessionPayload = {
+    userId,
+    email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    expires,
+  };
+
+  const session = await encrypt(sessionPayload); // must return a string
 
   cookies().set("session", session, {
     expires,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    sameSite: "lax",
   });
 }
 
 export async function login(credentials: unknown) {
-  const parsedCredentials = loginSchema.safeParse(credentials);
-
-  if (!parsedCredentials.success) {
+  const parsed = loginSchema.safeParse(credentials);
+  if (!parsed.success) {
     return { success: false, error: "Invalid credentials provided." };
   }
 
-  const { email, password } = parsedCredentials.data;
+  const { email, password } = parsed.data;
 
   try {
     const user = await getUserByEmail(email);
@@ -59,47 +57,44 @@ export async function login(credentials: unknown) {
       return { success: false, error: "No user found with this email." };
     }
 
-    const passwordsMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordsMatch) {
+    const match = await bcrypt.compare(password, user.password); // ✅ FIXED
+    if (!match) {
       return { success: false, error: "Invalid password." };
     }
 
     await createSession(user._id.toString());
-
     return { success: true };
-  } catch (error) {
-    console.error("Login error:", error);
+  } catch (err) {
+    console.error("Login error:", err);
     return { success: false, error: "Something went wrong during login." };
   }
 }
 
-export async function signup(userData: unknown) {
-  const parsedData = signupSchema.safeParse(userData);
-
-  if (!parsedData.success) {
+export async function signup(data: unknown) {
+  const parsed = signupSchema.safeParse(data);
+  if (!parsed.success) {
     return { success: false, error: "Invalid data provided." };
   }
 
-  const { email, password } = parsedData.data;
+  const { email, password } = parsed.data;
 
   try {
-    const existingUser = await getUserByEmail(email);
-    if (existingUser) {
-      return { success: false, error: "A user with this email already exists." };
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      return { success: false, error: "User already exists." };
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await createUser({ 
-        email, 
-        password: hashedPassword, 
-        displayName: email.split('@')[0],
-        avatarUrl: "" 
+    const hash = await bcrypt.hash(password, 10);
+    await createUser({
+      email,
+      password: hash,
+      displayName: email.split("@")[0],
+      avatarUrl: "",
     });
 
     return { success: true };
-  } catch (error) {
-    console.error("Signup error:", error);
+  } catch (err) {
+    console.error("Signup error:", err);
     return { success: false, error: "Something went wrong during signup." };
   }
 }
