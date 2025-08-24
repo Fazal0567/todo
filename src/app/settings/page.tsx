@@ -31,6 +31,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import React from "react";
 import type { Session, User } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 const accountFormSchema = z.object({
   email: z.string().email("Please enter a valid email."),
@@ -43,10 +44,12 @@ const accountFormSchema = z.object({
 
 const profileFormSchema = z.object({
   displayName: z.string().min(1, "Display name is required."),
+  avatarUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal("")),
 });
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -58,7 +61,7 @@ export default function SettingsPage() {
 
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: { displayName: "" },
+    defaultValues: { displayName: "", avatarUrl: "" },
   });
 
   React.useEffect(() => {
@@ -69,7 +72,10 @@ export default function SettingsPage() {
         const userData = await getUserById(sessionData.userId);
         setUser(userData);
         accountForm.reset({ email: userData?.email || "" });
-        profileForm.reset({ displayName: userData?.displayName || "" });
+        profileForm.reset({ 
+          displayName: userData?.displayName || "",
+          avatarUrl: userData?.avatarUrl || "",
+        });
       }
     }
     loadData();
@@ -95,8 +101,10 @@ export default function SettingsPage() {
       const result = await updateUserProfile(session.userId, values);
       if (result.success) {
         toast({ title: "Success", description: result.message });
-         const newSession = await getSession(); // re-fetch session
+        const newSession = await getSession(); // re-fetch session
         setSession(newSession);
+        // Refresh the page to show new avatar in header
+        router.refresh(); 
       } else {
         toast({ variant: "destructive", title: "Error", description: result.error });
       }
@@ -129,7 +137,7 @@ export default function SettingsPage() {
               </Card>
                <Card>
                 <CardHeader><Skeleton className="h-6 w-1/4" /></CardHeader>
-                <CardContent className="flex items-center space-x-4"><Skeleton className="h-16 w-16 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-24" /></div></CardContent>
+                <CardContent className="flex items-center space-x-4"><Skeleton className="h-16 w-16 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-24" /></div></CardContent>
               </Card>
                <Card>
                 <CardHeader><Skeleton className="h-6 w-1/4" /></CardHeader>
@@ -140,6 +148,9 @@ export default function SettingsPage() {
        </div>
     );
   }
+  
+  const displayName = user.displayName || user.email;
+  const firstLetter = displayName ? displayName[0].toUpperCase() : "?";
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -187,22 +198,30 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="flex items-center space-x-4">
-                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={`https://placehold.co/100x100.png`} alt={user.displayName} />
-                    <AvatarFallback>{user.displayName?.[0].toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-2">
-                     <FormField control={profileForm.control} name="displayName" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Display Name</FormLabel>
-                          <FormControl><Input {...field} disabled={isPending} /></FormControl>
+                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                   <div className="flex items-center space-x-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={profileForm.watch('avatarUrl') || user.avatarUrl || `https://placehold.co/100x100.png?text=${firstLetter}`} alt={user.displayName} data-ai-hint="avatar" />
+                      <AvatarFallback>{firstLetter}</AvatarFallback>
+                    </Avatar>
+                     <FormField control={profileForm.control} name="avatarUrl" render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Avatar URL</FormLabel>
+                          <FormControl><Input placeholder="https://example.com/avatar.png" {...field} disabled={isPending} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" disabled={isPending}>{isPending ? 'Updating...' : 'Update Profile'}</Button>
                   </div>
+                   <FormField control={profileForm.control} name="displayName" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Display Name</FormLabel>
+                        <FormControl><Input {...field} disabled={isPending} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" disabled={isPending}>{isPending ? 'Updating...' : 'Update Profile'}</Button>
                 </form>
               </Form>
             </CardContent>

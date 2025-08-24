@@ -85,7 +85,7 @@ export function AppHeader({
                     className="relative h-8 w-8 rounded-full"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={`https://placehold.co/100x100.png`} alt={displayName} />
+                      <AvatarImage src={session.avatarUrl || undefined} alt={displayName} data-ai-hint="avatar" />
                       <AvatarFallback>{fallback}</AvatarFallback>
                     </Avatar>
                   </Button>

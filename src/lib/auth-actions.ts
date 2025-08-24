@@ -23,7 +23,13 @@ export async function createSession(userId: string) {
     throw new Error("User not found for session creation.");
   }
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  const sessionPayload = { userId, email: user.email, displayName: user.displayName, expires };
+  const sessionPayload = { 
+      userId, 
+      email: user.email, 
+      displayName: user.displayName, 
+      avatarUrl: user.avatarUrl,
+      expires 
+    };
   const session = await encrypt(sessionPayload);
 
   cookies().set("session", session, {
@@ -80,7 +86,12 @@ export async function signup(userData: unknown) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await createUser({ email, password: hashedPassword, displayName: email.split('@')[0] });
+    await createUser({ 
+        email, 
+        password: hashedPassword, 
+        displayName: email.split('@')[0],
+        avatarUrl: "" 
+    });
 
     return { success: true };
   } catch (error) {

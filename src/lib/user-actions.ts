@@ -95,16 +95,17 @@ export async function updateUserAccount(userId: string, data: { email?: string; 
   }
 }
 
-export async function updateUserProfile(userId: string, data: { displayName?: string }) {
+export async function updateUserProfile(userId: string, data: { displayName?: string, avatarUrl?: string }) {
    if (!ObjectId.isValid(userId)) {
     return { success: false, error: "Invalid user ID." };
   }
   try {
     const collection = await getUsersCollection();
     await collection.updateOne({ _id: new ObjectId(userId) }, { $set: data });
-    await createSession(userId); // Re-create session with new display name
+    await createSession(userId); // Re-create session with new display name/avatar
     revalidatePath("/settings");
     revalidatePath("/profile");
+    revalidatePath("/"); // For header to update
     return { success: true, message: "Profile updated successfully." };
   } catch (error) {
      console.error("Update User Profile Error:", error);

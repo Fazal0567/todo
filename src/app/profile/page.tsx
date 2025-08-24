@@ -3,12 +3,15 @@
 
 import React, { useState, useEffect } from "react";
 import { AppHeader } from "@/components/app/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getSession } from "@/lib/auth-actions-client";
 import { getUserById } from "@/lib/user-actions-client";
 import type { Session, User } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 
 export default function ProfilePage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -54,6 +57,9 @@ export default function ProfilePage() {
                     <Skeleton className="h-4 w-1/2" />
                   </div>
               </CardContent>
+              <CardFooter>
+                 <Skeleton className="h-10 w-32" />
+              </CardFooter>
             </Card>
           </div>
         </main>
@@ -99,6 +105,7 @@ export default function ProfilePage() {
                   <AvatarImage
                     src={user.avatarUrl || `https://placehold.co/100x100.png?text=${firstLetter}`}
                     alt={displayName}
+                    data-ai-hint="avatar"
                   />
                   <AvatarFallback>{firstLetter}</AvatarFallback>
                 </Avatar>
@@ -122,6 +129,14 @@ export default function ProfilePage() {
                 </p>
               </div>
             </CardContent>
+             <CardFooter>
+              <Button asChild>
+                <Link href="/settings">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Profile
+                </Link>
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       </main>
