@@ -44,3 +44,19 @@ export interface Session {
   displayName?: string;
   avatarUrl?: string;
 }
+
+export type Notification = {
+    id: string;
+    userId: string; // The user who receives the notification
+    type: 'ROOM_INVITE';
+    data: {
+        roomId: string;
+        roomName: string;
+        inviterId: string;
+        inviterName: string;
+    };
+    read: boolean;
+    createdAt: Date;
+};
+
+export type NotificationDocument = Omit<Notification, 'id'>;

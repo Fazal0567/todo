@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { addUserToRoom } from "@/lib/room-actions";
+import { inviteUserToRoom } from "@/lib/room-actions";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -34,7 +34,7 @@ export function InviteUserForm({ roomId }: { roomId: string }) {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
-      const result = await addUserToRoom(roomId, values.email);
+      const result = await inviteUserToRoom(roomId, values.email);
       if (result.success) {
         toast({ title: "Success!", description: result.message });
         form.reset();

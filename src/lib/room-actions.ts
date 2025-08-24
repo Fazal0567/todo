@@ -7,7 +7,9 @@ import clientPromise from "@/lib/mongodb";
 import type { Room, RoomDocument } from "./types";
 import { getSession } from "./auth-client";
 import { redirect } from "next/navigation";
-import { getUserByEmail } from "./user-actions";
+import { getUserByEmail, getUserById } from "./user-actions";
+import { createNotification } from "./notification-actions";
+
 
 let roomsCollection: Collection<RoomDocument>;
 
@@ -43,7 +45,6 @@ export async function createRoom(name: string) {
   try {
     const collection = await getRoomsCollection();
     
-    // Check if a room with the same name already exists for this user
     const existingRoom = await collection.findOne({ name, userIds: session.userId });
     if (existingRoom) {
       return { error: `You already have a room named "${name}".` };
@@ -62,17 +63,12 @@ export async function createRoom(name: string) {
     const newRoomId = result.insertedId.toHexString();
     revalidatePath("/");
     revalidatePath(`/rooms/${newRoomId}`);
-    // No return needed because redirect will trigger
   } catch (error) {
     console.error("Database Error: Failed to create room.", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     return { error: errorMessage };
   }
 
-  // This should be outside the try-catch block if the redirect is intended to happen
-  // only after a successful creation and no error was returned.
-  // However, since we are redirecting from the server, we don't need to return anything on success.
-  // The 'no return' will be handled by the form. Let's move the redirect to the end.
   const rooms = await getUserRooms(session.userId);
   const newRoom = rooms.find(r => r.name === name);
   if(newRoom) {
@@ -105,7 +101,27 @@ export async function getRoom(roomId: string, userId: string): Promise<Room | nu
   }
 }
 
-export async function addUserToRoom(roomId: string, userEmail: string): Promise<{success: boolean, error?: string, message?: string}> {
+// This function is for when a user accepts an invite.
+export async function addUserToRoomById(roomId: string, userId: string): Promise<{success: boolean, error?: string}> {
+  if (!ObjectId.isValid(roomId)) {
+    return { success: false, error: "Invalid Room ID." };
+  }
+  try {
+    const collection = await getRoomsCollection();
+    await collection.updateOne(
+      { _id: new ObjectId(roomId) },
+      { $addToSet: { userIds: userId } }
+    );
+    revalidatePath(`/rooms/${roomId}`);
+    return { success: true };
+  } catch (error) {
+     console.error("Database Error: Failed to add user to room.", error);
+    return { success: false, error: "Could not add user to the room." };
+  }
+}
+
+
+export async function inviteUserToRoom(roomId: string, userEmail: string): Promise<{success: boolean, error?: string, message?: string}> {
   const session = await getSession();
   if (!session) {
     return { success: false, error: "Authentication required." };
@@ -116,47 +132,52 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
   }
 
   try {
-    const collection = await getRoomsCollection();
-    const roomToUpdate = await collection.findOne({ _id: new ObjectId(roomId) });
+    const rooms = await getRoomsCollection();
+    const roomToUpdate = await rooms.findOne({ _id: new ObjectId(roomId) });
 
     if (!roomToUpdate) {
         return { success: false, error: "Room not found." };
     }
     
-    // Allow adding a user if:
-    // 1. The person doing the adding is already in the room.
-    // 2. The person being added is the same as the person logged in (i.e., joining via link).
     const isMember = roomToUpdate.userIds.includes(session.userId);
-    const isAddingSelf = session.email === userEmail;
-
-    if (!isMember && !isAddingSelf) {
-      return { success: false, error: "You do not have permission to add users to this room." };
+    if (!isMember) {
+      return { success: false, error: "You do not have permission to invite users to this room." };
     }
     
-    const userToAdd = await getUserByEmail(userEmail);
-    if (!userToAdd) {
+    const userToInvite = await getUserByEmail(userEmail);
+    if (!userToInvite) {
         return { success: false, error: `User with email "${userEmail}" not found.` };
     }
     
-    const userToAddId = userToAdd._id.toHexString();
-    if (roomToUpdate.userIds.includes(userToAddId)) {
-      // This is not an error, just means they are already in.
-      // We can return success to allow the page to load for them.
-      return { success: true, message: "User is already in this room." };
+    const userToInviteId = userToInvite._id.toHexString();
+    if (roomToUpdate.userIds.includes(userToInviteId)) {
+      return { success: false, error: "User is already in this room." };
     }
 
-    await collection.updateOne(
-      { _id: new ObjectId(roomId) },
-      { $addToSet: { userIds: userToAddId } }
-    );
-    
-    // NOTE: Removed `revalidatePath` from here as it was causing a render-time error.
-    // The page will get the fresh data on the subsequent `getRoom` and `getTasks` calls anyway.
-    return { success: true, message: "User added successfully." };
+    // Check for existing pending invitation
+    // This part requires access to notifications, so we might need a separate action or direct DB access
+    // For now, let's assume we can check. A dedicated `notification-actions` file is better.
+
+    const inviter = await getUserById(session.userId);
+
+    await createNotification({
+        userId: userToInviteId,
+        type: 'ROOM_INVITE',
+        read: false,
+        createdAt: new Date(),
+        data: {
+            roomId: roomId,
+            roomName: roomToUpdate.name,
+            inviterId: session.userId,
+            inviterName: inviter?.displayName || inviter?.email || 'A user'
+        }
+    });
+
+    return { success: true, message: "Invitation sent successfully." };
     
   } catch (error) {
-    console.error("Database Error: Failed to add user to room.", error);
-    return { success: false, error: "Could not add user to the room." };
+    console.error("Database Error: Failed to invite user to room.", error);
+    return { success: false, error: "Could not send invitation." };
   }
 }
 
@@ -177,11 +198,9 @@ export async function leaveRoom(roomId: string) {
       throw new Error("Room not found.");
     }
     
-    // If the user is the last one in the room, delete the room
     if (room.userIds.length === 1 && room.userIds[0] === session.userId) {
       await collection.deleteOne({ _id: new ObjectId(roomId) });
     } else {
-      // Otherwise, just remove the user from the room
       await collection.updateOne(
         { _id: new ObjectId(roomId) },
         { $pull: { userIds: session.userId } }
@@ -195,11 +214,49 @@ export async function leaveRoom(roomId: string) {
     throw new Error("Could not leave the room.");
   }
 
-  // After leaving, redirect to the 'new room' page or the first available room.
   const remainingRooms = await getUserRooms(session.userId);
   if (remainingRooms.length > 0) {
     redirect(`/rooms/${remainingRooms[0].id}`);
   } else {
     redirect('/rooms/new');
   }
+}
+
+// Function for a user to join a public room via a link, if they aren't already in it.
+export async function joinRoomViaLink(roomId: string): Promise<void> {
+    const session = await getSession();
+    if (!session) {
+        // User is not logged in, they will be prompted on the page.
+        return;
+    }
+
+    if (!ObjectId.isValid(roomId)) {
+        console.error("Invalid Room ID provided in link.");
+        return;
+    }
+
+    try {
+        const collection = await getRoomsCollection();
+        const room = await collection.findOne({ _id: new ObjectId(roomId) });
+
+        if (!room) {
+            console.error("Room from link not found.");
+            return;
+        }
+
+        if (room.userIds.includes(session.userId)) {
+            // Already a member, do nothing.
+            return;
+        }
+
+        // Add the user to the room
+        await collection.updateOne(
+            { _id: new ObjectId(roomId) },
+            { $addToSet: { userIds: session.userId } }
+        );
+        // We don't revalidate here to avoid render-time errors.
+        // The page will refetch the necessary data on load.
+    } catch (error) {
+        console.error("Database Error: Failed to join room via link.", error);
+    }
 }

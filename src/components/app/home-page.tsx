@@ -13,6 +13,9 @@ import type { Task, Session } from "@/lib/types";
 import { CreateTaskFromNaturalLanguageOutput } from "@/ai/flows/natural-language-task-creation";
 import { addTask, deleteTask, toggleTaskStatus, updateTask } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
+import { getRoom } from "@/lib/room-actions";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import Link from "next/link";
 
 export default function HomePage({ serverTasks, session }: { serverTasks: Task[], session: Session | null }) {
   const { toast } = useToast();
@@ -26,10 +29,29 @@ export default function HomePage({ serverTasks, session }: { serverTasks: Task[]
     Task | Partial<Task> | undefined
   >(undefined);
 
-  // When the server-provided tasks change (e.g., on navigation), update the state
   useEffect(() => {
     setTasks(serverTasks);
   }, [serverTasks]);
+
+   if (!session || !roomId) {
+    return (
+       <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle className="text-2xl">Welcome to CollabTaskAI</CardTitle>
+            <CardDescription>
+              Please log in to manage your tasks.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             <Button asChild>
+                <Link href="/login">Login</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
   
   const handleAddTask = (task: Omit<Task, "id" | "status" | "roomId">) => {
     startTransition(async () => {
@@ -115,7 +137,7 @@ export default function HomePage({ serverTasks, session }: { serverTasks: Task[]
   };
   
   if (!roomId) {
-    return null; // Or a loading/error state
+    return null;
   }
 
   return (

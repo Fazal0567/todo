@@ -18,38 +18,36 @@ import {
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import {
-  Box,
   Plus,
-  Home,
-  Settings,
+  LogIn,
   User,
+  Settings,
   LogOut,
   Share2,
-  LifeBuoy,
-  LogIn,
 } from "lucide-react";
-import { AppHeader } from "./header";
-import { getSession } from "@/lib/auth-actions-client";
-import { Session, Room, Task } from "@/lib/types";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { AddRoomDialog } from "./add-room-dialog";
-import { Skeleton } from "../ui/skeleton";
-import { logout } from "@/lib/auth-actions";
+import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+
+import { Session, Room, Task, Notification } from "@/lib/types";
+import { logout } from "@/lib/auth-actions";
+import { AddRoomDialog } from "./add-room-dialog";
 import { TaskSummaryDialog } from "./task-summary-dialog";
 import { Button } from "../ui/button";
+import { NotificationPopover } from "./notification-popover";
 
 export function AppShell({
   children,
   rooms,
   tasks,
   session,
+  notifications
 }: {
   children: React.ReactNode;
   rooms: Room[];
   tasks: Task[];
   session: Session | null;
+  notifications: Notification[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -71,7 +69,7 @@ export function AppShell({
       navigator.clipboard.writeText(window.location.href);
       toast({
         title: "Room Link Copied!",
-        description: "Share the link to invite others to this room.",
+        description: "Share the link for others to join this room.",
       });
     } else {
        toast({
@@ -156,6 +154,7 @@ export function AppShell({
       <main className="lg:ml-[var(--sidebar-width)]">
         <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 lg:px-6">
             <div className="flex flex-1 items-center justify-end space-x-2">
+              <NotificationPopover notifications={notifications} />
               {session && tasks.length > 0 && <TaskSummaryDialog tasks={tasks} />}
                <Button variant="ghost" size="icon" onClick={handleShare}>
                 <Share2 className="h-4 w-4" />

@@ -2,7 +2,7 @@
 import { getTasks } from "@/lib/actions";
 import { getSession } from "@/lib/auth-client";
 import { AppShell } from "@/components/app/app-shell";
-import { getUserRooms, addUserToRoom, getRoom } from "@/lib/room-actions";
+import { getUserRooms, getRoom, joinRoomViaLink } from "@/lib/room-actions";
 import { redirect } from "next/navigation";
 import HomePage from "@/components/app/home-page";
 import {
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { InviteUserForm } from "./invite-user-form";
 import { LeaveRoomButton } from "./leave-room-button";
-import { Separator } from "@/components/ui/separator";
+import { getNotifications } from "@/lib/notification-actions";
 
 
 export default async function RoomPage({
@@ -28,8 +28,6 @@ export default async function RoomPage({
   const { roomId } = params;
 
   if (!session) {
-    // If not logged in, show a public page inviting them to log in or sign up
-    // to join the collaboration.
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md text-center">
@@ -52,20 +50,18 @@ export default async function RoomPage({
     );
   }
 
-  // If the user is logged in, try to add them to the room if they aren't already a member.
-  await addUserToRoom(roomId, session.email);
+  // If the user is logged in, attempt to add them to the room if they accessed via a link.
+  await joinRoomViaLink(roomId);
 
-  // Now, verify they have access.
   const room = await getRoom(roomId, session.userId);
   if (!room) {
-    // If they still don't have access (e.g., invalid room), redirect.
     return (
        <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle className="text-2xl">Room Not Found</CardTitle>
             <CardDescription>
-              This room doesn't exist or you don't have permission to access it.
+              This room doesn't exist or you don't have permission to access it. You may need to accept an invitation.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -78,19 +74,20 @@ export default async function RoomPage({
     )
   }
 
-  const [tasks, rooms] = await Promise.all([
+  const [tasks, rooms, notifications] = await Promise.all([
     getTasks(roomId),
     getUserRooms(session.userId),
+    getNotifications(session.userId),
   ]);
 
 
   return (
-    <AppShell rooms={rooms} tasks={tasks} session={session}>
+    <AppShell rooms={rooms} tasks={tasks} session={session} notifications={notifications}>
       <div className="mb-8 space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>Invite a Teammate</CardTitle>
-            <CardDescription>Share this room with others to collaborate on tasks.</CardDescription>
+            <CardDescription>Send an invitation to collaborate in this room.</CardDescription>
           </CardHeader>
           <CardContent>
             <InviteUserForm roomId={roomId} />
@@ -100,7 +97,7 @@ export default async function RoomPage({
             <CardHeader>
                 <CardTitle>Room Actions</CardTitle>
                 <CardDescription>Manage your membership in this room.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent>
                 <LeaveRoomButton roomId={roomId} roomName={room.name} />
             </CardContent>
