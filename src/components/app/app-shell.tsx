@@ -126,7 +126,7 @@ export function AppShell({
                         >
                           {room.name}
                         </SidebarMenuSubButton>
-                        {room.members && room.members.length > 1 && (
+                        {room.members && room.members.length > 0 && (
                            <CollapsibleTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 mr-1">
                                   <Users className="h-4 w-4" />

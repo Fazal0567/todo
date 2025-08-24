@@ -70,7 +70,7 @@ export function SmartTaskInput({ onTaskCreate }: SmartTaskInputProps) {
                 <Input
                   {...field}
                   placeholder="Create a task with AI... e.g., 'Finish report by Friday 5pm'"
-                  className="pl-10 pr-10 h-12 text-base"
+                  className="pl-10 pr-10 h-12 text-sm md:text-base"
                   disabled={isPending}
                 />
                 <button

@@ -66,18 +66,18 @@ export function TaskCard({
       )}
     >
       <CardHeader className="flex flex-row items-start justify-between gap-4 p-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-start gap-4">
           <Checkbox
             id={`task-${task.id}`}
             checked={isDone}
             onCheckedChange={() => onToggleStatus(task.id)}
             aria-label={`Mark ${task.title} as ${isDone ? 'pending' : 'done'}`}
-            className="h-5 w-5"
+            className="h-5 w-5 mt-1"
           />
           <div className="grid gap-1">
             <CardTitle
               className={cn(
-                "text-lg",
+                "text-base md:text-lg",
                 isDone && "text-muted-foreground line-through"
               )}
             >
@@ -85,7 +85,7 @@ export function TaskCard({
             </CardTitle>
             {task.description && (
               <CardDescription
-                className={cn(isDone && "text-muted-foreground/80 line-through")}
+                className={cn("text-sm md:text-base", isDone && "text-muted-foreground/80 line-through")}
               >
                 {task.description}
               </CardDescription>
@@ -114,7 +114,7 @@ export function TaskCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent className="flex items-center justify-between p-4 pt-0">
+      <CardContent className="flex flex-col items-start gap-2 p-4 pt-0 sm:flex-row sm:items-center sm:justify-between">
         <Badge
           variant="outline"
           className={cn(

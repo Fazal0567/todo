@@ -17,7 +17,6 @@ import Link from "next/link";
 import { InviteUserForm } from "./invite-user-form";
 import { LeaveRoomButton } from "./leave-room-button";
 import { getNotifications } from "@/lib/notification-actions";
-import { Header } from "@radix-ui/react-accordion";
 
 
 export default async function RoomPage({
@@ -85,7 +84,7 @@ export default async function RoomPage({
 
   return (
     <AppShell rooms={rooms} tasks={tasks} session={session} notifications={notifications}>
-      <div className="mb-8 space-y-4">
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Invite a Teammate</CardTitle>

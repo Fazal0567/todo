@@ -144,7 +144,7 @@ export default function HomePage({ serverTasks, session }: { serverTasks: Task[]
     <>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
             Your Tasks
           </h1>
           <p className="text-muted-foreground">
