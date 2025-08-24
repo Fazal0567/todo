@@ -100,7 +100,8 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
     const collection = await getRoomsCollection();
     const room = await collection.findOne({ _id: new ObjectId(roomId), userIds: session.userId });
 
-    if (!room) {
+    // Allow user to add themselves without being a member yet
+    if (!room && session.email !== userEmail) {
       return { success: false, error: "You do not have permission to add users to this room." };
     }
     
@@ -109,8 +110,10 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
         return { success: false, error: `User with email "${userEmail}" not found.` };
     }
 
-    if (room.userIds.includes(userToAdd.id)) {
-      return { success: false, error: "User is already in this room." };
+    if (room && room.userIds.includes(userToAdd.id)) {
+      // This is not an error, just means they are already in.
+      // We can return success to allow the page to load for them.
+      return { success: true, message: "User is already in this room." };
     }
 
     await collection.updateOne(
@@ -124,5 +127,49 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
   } catch (error) {
     console.error("Database Error: Failed to add user to room.", error);
     return { success: false, error: "Could not add user to the room." };
+  }
+}
+
+export async function leaveRoom(roomId: string) {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("Authentication required.");
+  }
+  if (!ObjectId.isValid(roomId)) {
+    throw new Error("Invalid Room ID.");
+  }
+
+  try {
+    const collection = await getRoomsCollection();
+    const room = await collection.findOne({ _id: new ObjectId(roomId) });
+
+    if (!room) {
+      throw new Error("Room not found.");
+    }
+    
+    // If the user is the last one in the room, delete the room
+    if (room.userIds.length === 1 && room.userIds[0] === session.userId) {
+      await collection.deleteOne({ _id: new ObjectId(roomId) });
+    } else {
+      // Otherwise, just remove the user from the room
+      await collection.updateOne(
+        { _id: new ObjectId(roomId) },
+        { $pull: { userIds: session.userId } }
+      );
+    }
+    
+    revalidatePath(`/rooms/${roomId}`);
+    revalidatePath("/");
+  } catch (error) {
+    console.error("Database Error: Failed to leave room.", error);
+    throw new Error("Could not leave the room.");
+  }
+
+  // After leaving, redirect to the 'new room' page or the first available room.
+  const remainingRooms = await getUserRooms(session.userId);
+  if (remainingRooms.length > 0) {
+    redirect(`/rooms/${remainingRooms[0].id}`);
+  } else {
+    redirect('/rooms/new');
   }
 }

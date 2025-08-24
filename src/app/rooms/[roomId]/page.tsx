@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { InviteUserForm } from "./invite-user-form";
+import { LeaveRoomButton } from "./leave-room-button";
+import { Separator } from "@/components/ui/separator";
 
 
 export default async function RoomPage({
@@ -84,7 +86,7 @@ export default async function RoomPage({
 
   return (
     <AppShell rooms={rooms} tasks={tasks} session={session}>
-      <div className="mb-8">
+      <div className="mb-8 space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>Invite a Teammate</CardTitle>
@@ -93,6 +95,15 @@ export default async function RoomPage({
           <CardContent>
             <InviteUserForm roomId={roomId} />
           </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle>Room Actions</CardTitle>
+                <CardDescription>Manage your membership in this room.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <LeaveRoomButton roomId={roomId} roomName={room.name} />
+            </CardContent>
         </Card>
       </div>
       <HomePage serverTasks={tasks} session={session} />
