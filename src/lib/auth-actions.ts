@@ -23,6 +23,10 @@ export async function createSession(userId: string) {
     throw new Error("User not found for session creation.");
   }
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  // Note: Storing large data like a Base64 avatar in a cookie is not recommended.
+  // This is a simplified approach. In a production app, store the avatar in a
+  // cloud storage service and save only the URL in the session.
   const sessionPayload = { 
       userId, 
       email: user.email, 

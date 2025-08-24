@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import React from "react";
 import type { Session, User } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
 
 const accountFormSchema = z.object({
   email: z.string().email("Please enter a valid email."),
@@ -44,7 +45,7 @@ const accountFormSchema = z.object({
 
 const profileFormSchema = z.object({
   displayName: z.string().min(1, "Display name is required."),
-  avatarUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal("")),
+  avatarUrl: z.string().optional(),
 });
 
 export default function SettingsPage() {
@@ -53,6 +54,7 @@ export default function SettingsPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isPending, startTransition] = useTransition();
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const accountForm = useForm<z.infer<typeof accountFormSchema>>({
     resolver: zodResolver(accountFormSchema),
@@ -72,7 +74,7 @@ export default function SettingsPage() {
         const userData = await getUserById(sessionData.userId);
         setUser(userData);
         accountForm.reset({ email: userData?.email || "" });
-        profileForm.reset({ 
+        profileForm.reset({
           displayName: userData?.displayName || "",
           avatarUrl: userData?.avatarUrl || "",
         });
@@ -80,7 +82,7 @@ export default function SettingsPage() {
     }
     loadData();
   }, [accountForm, profileForm]);
-  
+
   const handleAccountUpdate = (values: z.infer<typeof accountFormSchema>) => {
     if (!session?.userId) return;
     startTransition(async () => {
@@ -94,7 +96,7 @@ export default function SettingsPage() {
       }
     });
   };
-  
+
   const handleProfileUpdate = (values: z.infer<typeof profileFormSchema>) => {
     if (!session?.userId) return;
     startTransition(async () => {
@@ -104,13 +106,13 @@ export default function SettingsPage() {
         const newSession = await getSession(); // re-fetch session
         setSession(newSession);
         // Refresh the page to show new avatar in header
-        router.refresh(); 
+        router.refresh();
       } else {
         toast({ variant: "destructive", title: "Error", description: result.error });
       }
     });
   };
-  
+
   const handleNotificationsUpdate = (enabled: boolean) => {
      if (!session?.userId) return;
      startTransition(async () => {
@@ -123,6 +125,18 @@ export default function SettingsPage() {
       }
     });
   }
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        profileForm.setValue('avatarUrl', reader.result as string, { shouldValidate: true });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   if (!session || !user) {
     return (
@@ -148,7 +162,7 @@ export default function SettingsPage() {
        </div>
     );
   }
-  
+
   const displayName = user.displayName || user.email;
   const firstLetter = displayName ? displayName[0].toUpperCase() : "?";
 
@@ -204,14 +218,17 @@ export default function SettingsPage() {
                       <AvatarImage src={profileForm.watch('avatarUrl') || user.avatarUrl || `https://placehold.co/100x100.png?text=${firstLetter}`} alt={user.displayName} data-ai-hint="avatar" />
                       <AvatarFallback>{firstLetter}</AvatarFallback>
                     </Avatar>
-                     <FormField control={profileForm.control} name="avatarUrl" render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Avatar URL</FormLabel>
-                          <FormControl><Input placeholder="https://example.com/avatar.png" {...field} disabled={isPending} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     <div className="flex-1">
+                        <Label htmlFor="avatar-upload">Profile Picture</Label>
+                        <div className="flex items-center gap-2">
+                           <Input id="avatar-upload" type="file" accept="image/*" className="hidden" ref={avatarFileRef} onChange={handleAvatarChange} />
+                            <Button type="button" variant="outline" onClick={() => avatarFileRef.current?.click()} disabled={isPending}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload Image
+                            </Button>
+                            {profileForm.watch('avatarUrl') && <p className="text-xs text-muted-foreground">Image ready to upload.</p>}
+                        </div>
+                     </div>
                   </div>
                    <FormField control={profileForm.control} name="displayName" render={({ field }) => (
                       <FormItem>
@@ -237,8 +254,8 @@ export default function SettingsPage() {
                 <p className="font-medium">Email Notifications</p>
                 <p className="text-sm text-muted-foreground">Receive updates about tasks and rooms.</p>
               </div>
-              <Switch 
-                checked={user.emailNotifications}
+              <Switch
+                checked={!!user.emailNotifications}
                 onCheckedChange={handleNotificationsUpdate}
                 disabled={isPending}
               />
