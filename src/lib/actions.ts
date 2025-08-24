@@ -1,5 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { Collection, ObjectId } from "mongodb";
+import clientPromise from "@/lib/mongodb";
 import {
   createTaskFromNaturalLanguage,
   CreateTaskFromNaturalLanguageOutput,
@@ -9,7 +12,62 @@ import {
   SuggestTaskPriorityOutput,
 } from "@/ai/flows/suggest-task-priority";
 import { summarizeTasks } from "@/ai/flows/summarize-tasks";
-import { Task } from "./types";
+import type { Task } from "./types";
+
+let tasksCollection: Collection<Omit<Task, 'id'>>;
+
+async function getTasksCollection() {
+  if (tasksCollection) {
+    return tasksCollection;
+  }
+  const client = await clientPromise;
+  const db = client.db();
+  tasksCollection = db.collection<Omit<Task, 'id'>>("tasks");
+  return tasksCollection;
+}
+
+export async function getTasks(): Promise<Task[]> {
+  const collection = await getTasksCollection();
+  const tasks = await collection.find({}).sort({ _id: -1 }).toArray();
+  return tasks.map(task => ({ ...task, id: task._id.toHexString() }));
+}
+
+
+export async function addTask(taskData: Omit<Task, "id" | "status">) {
+  const collection = await getTasksCollection();
+  const newTask: Omit<Task, "id"> = { ...taskData, status: "pending" };
+  await collection.insertOne(newTask);
+  revalidatePath("/");
+}
+
+export async function updateTask(taskId: string, taskData: Partial<Omit<Task, "id">>) {
+  if (!ObjectId.isValid(taskId)) {
+    throw new Error("Invalid task ID");
+  }
+  const collection = await getTasksCollection();
+  await collection.updateOne({ _id: new ObjectId(taskId) }, { $set: taskData });
+  revalidatePath("/");
+}
+
+export async function deleteTask(taskId: string) {
+  if (!ObjectId.isValid(taskId)) {
+    throw new Error("Invalid task ID");
+  }
+  const collection = await getTasksCollection();
+  await collection.deleteOne({ _id: new ObjectId(taskId) });
+  revalidatePath("/");
+}
+
+export async function toggleTaskStatus(taskId: string, currentStatus: "pending" | "done") {
+  if (!ObjectId.isValid(taskId)) {
+    throw new Error("Invalid task ID");
+  }
+  const collection = await getTasksCollection();
+  const newStatus = currentStatus === "pending" ? "done" : "pending";
+  await collection.updateOne({ _id: new ObjectId(taskId) }, { $set: { status: newStatus } });
+  revalidatePath("/");
+}
+
 
 export async function getSmartTask(
   naturalLanguageInput: string
