@@ -27,10 +27,10 @@ export async function createUser(userData: Omit<User, "id">) {
   return result;
 }
 
-export async function getUserByEmail(email: string): Promise<(UserDocument & { _id: ObjectId }) | null> {
+export async function getUserByEmail(email: string) {
   const collection = await getUsersCollection();
   // Ensure we also get the password field
-  const user = await collection.findOne({ email });
+  const user = await collection.findOne({ email }, {projection: { password: 1, email: 1, displayName: 1, avatarUrl: 1, _id: 1 }});
 
   if (!user) return null;
 
