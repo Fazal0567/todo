@@ -10,6 +10,11 @@ export async function middleware(request: NextRequest) {
 
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   
+  // 🔓 If user IS logged in & tries to access a public route (like /login) → send to home
+  if (session && isPublicRoute) {
+    return NextResponse.redirect(new URL("/", origin));
+  }
+  
   // Allow accessing a specific room page even if not a member yet,
   // as the page itself handles logic for joining or viewing.
   if (pathname.startsWith('/rooms/')) {
@@ -21,10 +26,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", origin));
   }
 
-  // 🔓 If user IS logged in & tries to access a public route → send to home
-  if (session && isPublicRoute) {
-    return NextResponse.redirect(new URL("/", origin));
-  }
 
   // ✅ Otherwise, continue
   return NextResponse.next();
