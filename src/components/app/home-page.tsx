@@ -11,8 +11,10 @@ import { SmartTaskInput } from "@/components/app/smart-task-input";
 import type { Task } from "@/lib/types";
 import { CreateTaskFromNaturalLanguageOutput } from "@/ai/flows/natural-language-task-creation";
 import { addTask, deleteTask, toggleTaskStatus, updateTask } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage({ serverTasks }: { serverTasks: Task[] }) {
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>(serverTasks);
   const [isAddTaskOpen, setAddTaskOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<
@@ -21,7 +23,15 @@ export default function HomePage({ serverTasks }: { serverTasks: Task[] }) {
   
   const handleAddTask = (task: Omit<Task, "id" | "status">) => {
     startTransition(async () => {
-      await addTask(task);
+      try {
+        await addTask(task);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Database Error",
+          description: (error as Error).message,
+        });
+      }
     });
   };
 

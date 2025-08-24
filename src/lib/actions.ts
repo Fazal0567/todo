@@ -27,17 +27,29 @@ async function getTasksCollection() {
 }
 
 export async function getTasks(): Promise<Task[]> {
-  const collection = await getTasksCollection();
-  const tasks = await collection.find({}).sort({ _id: -1 }).toArray();
-  return tasks.map(task => ({ ...task, id: task._id.toHexString() }));
+  try {
+    const collection = await getTasksCollection();
+    const tasks = await collection.find({}).sort({ _id: -1 }).toArray();
+    return tasks.map(task => ({ ...task, id: task._id.toHexString() }));
+  } catch (error) {
+    console.error("Database Error: Failed to fetch tasks.", error);
+    // In case of a database error, return an empty array to prevent the app from crashing.
+    // A more robust solution might involve showing an error message to the user.
+    return [];
+  }
 }
 
 
 export async function addTask(taskData: Omit<Task, "id" | "status">) {
-  const collection = await getTasksCollection();
-  const newTask: Omit<Task, "id"> = { ...taskData, status: "pending" };
-  await collection.insertOne(newTask);
-  revalidatePath("/");
+  try {
+    const collection = await getTasksCollection();
+    const newTask: Omit<Task, "id"> = { ...taskData, status: "pending" };
+    await collection.insertOne(newTask);
+    revalidatePath("/");
+  } catch (error) {
+    console.error("Database Error: Failed to add task.", error);
+    throw new Error("Could not connect to the database. Please ensure it is running.");
+  }
 }
 
 export async function updateTask(taskId: string, taskData: Partial<Omit<Task, "id">>) {
