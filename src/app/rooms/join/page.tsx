@@ -9,15 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AddRoomDialog } from "@/components/app/add-room-dialog";
 import { getUserRooms } from "@/lib/room-actions";
-import { CreateRoomForm } from "./create-room-form";
+import { JoinRoomForm } from "./join-room-form";
 import Link from "next/link";
 
-export default async function NewRoomPage() {
+export default async function JoinRoomPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/login");
+    redirect("/login?redirectTo=/rooms/join");
   }
 
   const rooms = await getUserRooms(session.userId);
@@ -27,20 +26,20 @@ export default async function NewRoomPage() {
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Create a New Room</CardTitle>
+            <CardTitle>Join an Existing Room</CardTitle>
             <CardDescription>
-              Start a new collaborative space for your tasks.
+              Paste the link to the room you want to join.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateRoomForm />
-            <p className="mt-4 text-center text-sm text-muted-foreground">
+            <JoinRoomForm />
+             <p className="mt-4 text-center text-sm text-muted-foreground">
               Or, you can{" "}
               <Link
-                href="/rooms/join"
+                href="/rooms/new"
                 className="font-semibold text-primary hover:underline"
               >
-                join an existing room
+                create a new room
               </Link>
               .
             </p>

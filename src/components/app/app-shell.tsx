@@ -26,6 +26,7 @@ import {
   LogOut,
   Share2,
   LifeBuoy,
+  LogIn,
 } from "lucide-react";
 import { AppHeader } from "./header";
 import { getSession } from "@/lib/auth-actions-client";
@@ -95,11 +96,17 @@ export function AppShell({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                onClick={() => setAddRoomOpen(true)}
+                onClick={() => router.push('/rooms/new')}
                 variant="outline"
               >
                 <Plus />
                 <span>New Room</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => router.push('/rooms/join')}>
+                <LogIn />
+                <span>Join Room</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarGroup>
