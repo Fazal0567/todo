@@ -18,7 +18,9 @@ import dotenv from 'dotenv';
 let tasksCollection: Collection<Omit<Task, 'id'>>;
 
 async function getTasksCollection() {
-  dotenv.config();
+  // Explicitly load environment variables just before they are needed.
+  dotenv.config({ path: './.env' });
+
   if (tasksCollection) {
     return tasksCollection;
   }

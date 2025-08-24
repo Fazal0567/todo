@@ -1,10 +1,7 @@
 import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI". Please check your .env file.');
+  throw new Error('Invalid/Missing environment variable: "MONGODB_URI". Please check your .env file and ensure it is available to the running process.');
 }
 
 const uri = process.env.MONGODB_URI;
@@ -25,8 +22,8 @@ if (process.env.NODE_ENV === 'development') {
       client = new MongoClient(uri, options);
       globalWithMongo._mongoClientPromise = client.connect();
     } catch (e) {
-      console.error("Failed to connect to MongoDB", e);
-      throw new Error("Failed to connect to MongoDB. Please ensure the database server is running and the MONGODB_URI is correct.");
+      console.error("Failed to create MongoDB client", e);
+      throw new Error("Failed to create MongoDB client. Please ensure the MONGODB_URI is valid.");
     }
   }
   clientPromise = globalWithMongo._mongoClientPromise;
