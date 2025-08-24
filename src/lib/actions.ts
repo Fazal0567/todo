@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -13,7 +14,9 @@ import {
 } from "@/ai/flows/suggest-task-priority";
 import { summarizeTasks } from "@/ai/flows/summarize-tasks";
 import type { Task } from "./types";
-import dotenv from 'dotenv';
+import { getSession } from "./auth-client";
+import { getRoom } from "./room-actions";
+
 
 // A type for the task document stored in MongoDB, which uses _id
 type TaskDocument = Omit<Task, 'id'>;
@@ -35,22 +38,34 @@ async function getTasksCollection() {
   }
 }
 
-export async function getTasks(): Promise<Task[]> {
+function toTaskObject(doc: WithId<TaskDocument>): Task {
+  const { _id, ...rest } = doc;
+  return {
+    id: _id.toHexString(),
+    ...rest
+  };
+}
+
+export async function getTasks(roomId: string): Promise<Task[]> {
+  const session = await getSession();
+  if (!session) {
+    console.error("Authentication Error: No session found.");
+    return [];
+  }
+
+  // Validate that the user has access to this room
+  const room = await getRoom(roomId, session.userId);
+  if (!room) {
+    console.error("Authorization Error: User does not have access to this room.");
+    return [];
+  }
+
   try {
     const collection = await getTasksCollection();
-    const tasksFromDb: WithId<TaskDocument>[] = await collection.find({}).sort({ _id: -1 }).toArray();
-    
-    // Manually convert the tasks to plain objects to avoid serialization issues
-    return tasksFromDb.map((task) => {
-      const { _id, ...rest } = task;
-      return {
-        id: _id.toHexString(),
-        ...rest,
-      };
-    });
+    const tasksFromDb = await collection.find({ roomId }).sort({ _id: -1 }).toArray();
+    return tasksFromDb.map(toTaskObject);
   } catch (error) {
     console.error("Database Error: Failed to fetch tasks.", error);
-    // In case of an error, return an empty array to prevent the app from crashing.
     return [];
   }
 }
@@ -59,43 +74,84 @@ export async function getTasks(): Promise<Task[]> {
 export async function addTask(taskData: Omit<Task, "id" | "status">) {
   try {
     const collection = await getTasksCollection();
-    const newTask: Omit<Task, "id"> = { ...taskData, status: "pending" };
-    await collection.insertOne(newTask);
-    revalidatePath("/");
+    const newTask: TaskDocument = { ...taskData, status: "pending" };
+    const result = await collection.insertOne(newTask);
+    
+    if (result.insertedId) {
+      revalidatePath(`/rooms/${taskData.roomId}`);
+      const insertedTask = await collection.findOne({ _id: result.insertedId });
+      if (insertedTask) {
+        return { success: true, data: toTaskObject(insertedTask) };
+      }
+    }
+    return { success: false, error: "Failed to add task." };
   } catch (error) {
     console.error("Database Error: Failed to add task.", error);
-    throw new Error("Could not add task. Please ensure the database is connected and running.");
+    return { success: false, error: "Could not add task. Please ensure the database is connected and running." };
   }
 }
 
 export async function updateTask(taskId: string, taskData: Partial<Omit<Task, "id">>) {
   if (!ObjectId.isValid(taskId)) {
-    throw new Error("Invalid task ID");
+    return { success: false, error: "Invalid task ID." };
   }
-  const collection = await getTasksCollection();
-  await collection.updateOne({ _id: new ObjectId(taskId) }, { $set: taskData });
-  revalidatePath("/");
+  try {
+    const collection = await getTasksCollection();
+    const { id, ...dataToUpdate } = taskData;
+    await collection.updateOne({ _id: new ObjectId(taskId) }, { $set: dataToUpdate });
+    const updatedTask = await collection.findOne({_id: new ObjectId(taskId)});
+    
+    if (updatedTask) {
+      revalidatePath(`/rooms/${updatedTask.roomId}`);
+      return { success: true, data: toTaskObject(updatedTask) };
+    }
+     return { success: false, error: "Task not found after update." };
+  } catch (error) {
+    console.error("Database Error: Failed to update task.", error);
+    return { success: false, error: "Failed to update task." };
+  }
 }
 
 export async function deleteTask(taskId: string) {
   if (!ObjectId.isValid(taskId)) {
-    throw new Error("Invalid task ID");
+     return { success: false, error: "Invalid task ID." };
   }
-  const collection = await getTasksCollection();
-  await collection.deleteOne({ _id: new ObjectId(taskId) });
-  revalidatePath("/");
+  try {
+    const collection = await getTasksCollection();
+    const taskToDelete = await collection.findOne({ _id: new ObjectId(taskId) });
+    if (!taskToDelete) {
+       return { success: false, error: "Task not found." };
+    }
+    const roomId = taskToDelete.roomId;
+    await collection.deleteOne({ _id: new ObjectId(taskId) });
+    revalidatePath(`/rooms/${roomId}`);
+    return { success: true };
+  } catch (error) {
+     console.error("Database Error: Failed to delete task.", error);
+    return { success: false, error: "Failed to delete task." };
+  }
 }
 
 export async function toggleTaskStatus(taskId: string, currentStatus: "pending" | "done") {
   if (!ObjectId.isValid(taskId)) {
-    throw new Error("Invalid task ID");
+    return { success: false, error: "Invalid task ID." };
   }
-  const collection = await getTasksCollection();
-  const newStatus = currentStatus === "pending" ? "done" : "pending";
-  await collection.updateOne({ _id: new ObjectId(taskId) }, { $set: { status: newStatus } });
-  revalidatePath("/");
-}
+  try {
+    const collection = await getTasksCollection();
+    const newStatus = currentStatus === "pending" ? "done" : "pending";
+    await collection.updateOne({ _id: new ObjectId(taskId) }, { $set: { status: newStatus } });
+    const updatedTask = await collection.findOne({_id: new ObjectId(taskId)});
 
+    if (updatedTask) {
+      revalidatePath(`/rooms/${updatedTask.roomId}`);
+      return { success: true, data: toTaskObject(updatedTask) };
+    }
+    return { success: false, error: "Task not found after update." };
+  } catch (error) {
+    console.error("Database Error: Failed to update task status.", error);
+    return { success: false, error: "Failed to update task status." };
+  }
+}
 
 export async function getSmartTask(
   naturalLanguageInput: string

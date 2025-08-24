@@ -1,8 +1,8 @@
 
-import { getTasks } from "@/lib/actions";
 import { getSession } from "@/lib/auth-client";
 import { redirect } from "next/navigation";
-import HomePage from "@/components/app/home-page";
+import { getUserRooms } from "@/lib/room-actions";
+import { AppShell } from "@/components/app/app-shell";
 
 export default async function Home() {
   const session = await getSession();
@@ -10,7 +10,13 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const tasks = await getTasks();
+  const rooms = await getUserRooms(session.userId);
+  
+  // If the user has no rooms, redirect to a page to create one
+  if (!rooms || rooms.length === 0) {
+    redirect("/rooms/new");
+  }
 
-  return <HomePage serverTasks={tasks} session={session} />;
+  // Redirect to the first room in the list by default
+  redirect(`/rooms/${rooms[0].id}`);
 }

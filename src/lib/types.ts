@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 
 export type Task = {
   id: string;
+  roomId: string;
   title: string;
   description?: string;
   priority: 'High' | 'Medium' | 'Low';
@@ -16,6 +17,14 @@ export type TaskSummary = {
 
 // Raw document from MongoDB
 export type TaskDocument = Omit<Task, "id">;
+
+export type Room = {
+  id: string;
+  name: string;
+  userIds: string[];
+};
+
+export type RoomDocument = Omit<Room, "id">;
 
 
 export type User = {

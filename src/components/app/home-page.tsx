@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, startTransition } from "react";
+import { useState, startTransition, useEffect } from "react";
 import { Plus } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/app/header";
 import { AddTaskDialog } from "@/components/app/add-task-dialog";
 import { TaskList } from "@/components/app/task-list";
 import { SmartTaskInput } from "@/components/app/smart-task-input";
@@ -16,16 +16,34 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage({ serverTasks, session }: { serverTasks: Task[], session: Session | null }) {
   const { toast } = useToast();
+  const router = useRouter();
+  const params = useParams();
+  const roomId = params.roomId as string;
+
   const [tasks, setTasks] = useState<Task[]>(serverTasks);
   const [isAddTaskOpen, setAddTaskOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<
     Task | Partial<Task> | undefined
   >(undefined);
+
+  // When the server-provided tasks change (e.g., on navigation), update the state
+  useEffect(() => {
+    setTasks(serverTasks);
+  }, [serverTasks]);
   
-  const handleAddTask = (task: Omit<Task, "id" | "status">) => {
+  const handleAddTask = (task: Omit<Task, "id" | "status" | "roomId">) => {
     startTransition(async () => {
       try {
-        await addTask(task);
+        const result = await addTask({ ...task, roomId });
+        if (result.success && result.data) {
+          setTasks(prev => [...prev, result.data]);
+        } else {
+           toast({
+            variant: "destructive",
+            title: "Error adding task",
+            description: result.error || "An unknown error occurred.",
+          });
+        }
       } catch (error) {
         toast({
           variant: "destructive",
@@ -38,19 +56,49 @@ export default function HomePage({ serverTasks, session }: { serverTasks: Task[]
 
   const handleUpdateTask = (updatedTask: Task) => {
     startTransition(async () => {
-      await updateTask(updatedTask.id, updatedTask);
+      const result = await updateTask(updatedTask.id, updatedTask);
+       if (result.success && result.data) {
+          setTasks(prev => prev.map(t => t.id === result.data!.id ? result.data! : t));
+        } else {
+           toast({
+            variant: "destructive",
+            title: "Error updating task",
+            description: result.error || "An unknown error occurred.",
+          });
+        }
     });
   };
 
   const handleDeleteTask = (taskId: string) => {
     startTransition(async () => {
-      await deleteTask(taskId);
+      const result = await deleteTask(taskId);
+       if (result.success) {
+          setTasks(prev => prev.filter(t => t.id !== taskId));
+        } else {
+           toast({
+            variant: "destructive",
+            title: "Error deleting task",
+            description: result.error || "An unknown error occurred.",
+          });
+        }
     });
   };
 
-  const handleToggleStatus = (taskId: string, currentStatus: 'pending' | 'done') => {
+  const handleToggleStatus = (taskId: string) => {
+     const task = tasks.find(t => t.id === taskId);
+     if (!task) return;
+
     startTransition(async () => {
-      await toggleTaskStatus(taskId, currentStatus);
+      const result = await toggleTaskStatus(taskId, task.status);
+       if (result.success && result.data) {
+          setTasks(prev => prev.map(t => t.id === result.data!.id ? result.data! : t));
+        } else {
+           toast({
+            variant: "destructive",
+            title: "Error updating status",
+            description: result.error || "An unknown error occurred.",
+          });
+        }
     });
   };
 
@@ -65,48 +113,39 @@ export default function HomePage({ serverTasks, session }: { serverTasks: Task[]
     setTaskToEdit(prefill);
     setAddTaskOpen(true);
   };
+  
+  if (!roomId) {
+    return null; // Or a loading/error state
+  }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader
-        tasks={tasks}
-        session={session}
-      />
-      <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Your Tasks
-              </h1>
-              <p className="text-muted-foreground">
-                Stay organized, stay productive.
-              </p>
-            </div>
-            <Button onClick={() => openNewTaskDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Task
-            </Button>
-          </div>
-
-          <div className="mb-8">
-            <SmartTaskInput onTaskCreate={openNewTaskDialog} />
-          </div>
-
-          <TaskList
-            tasks={tasks}
-            onDeleteTask={handleDeleteTask}
-            onEditTask={openEditDialog}
-            onToggleStatus={(taskId) => {
-              const task = tasks.find(t => t.id === taskId);
-              if (task) {
-                handleToggleStatus(taskId, task.status);
-              }
-            }}
-          />
+    <>
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Your Tasks
+          </h1>
+          <p className="text-muted-foreground">
+            Stay organized, stay productive.
+          </p>
         </div>
-      </main>
-      <AddTaskDialog
+        <Button onClick={() => openNewTaskDialog()}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Task
+        </Button>
+      </div>
+
+      <div className="mb-8">
+        <SmartTaskInput onTaskCreate={openNewTaskDialog} />
+      </div>
+
+      <TaskList
+        tasks={tasks}
+        onDeleteTask={handleDeleteTask}
+        onEditTask={openEditDialog}
+        onToggleStatus={handleToggleStatus}
+      />
+       <AddTaskDialog
         isOpen={isAddTaskOpen}
         onOpenChange={(open) => {
           if (!open) setTaskToEdit(undefined);
@@ -121,6 +160,6 @@ export default function HomePage({ serverTasks, session }: { serverTasks: Task[]
         }}
         task={taskToEdit}
       />
-    </div>
+    </>
   );
 }

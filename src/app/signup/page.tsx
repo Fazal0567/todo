@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -30,6 +30,9 @@ const formSchema = z.object({
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo");
+
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,7 +54,7 @@ export default function SignupPage() {
         title: "Signup Successful",
         description: "You can now log in with your credentials.",
       });
-      router.push("/login");
+      router.push(`/login${redirectTo ? `?redirectTo=${redirectTo}` : ''}`);
     } else {
       toast({
         variant: "destructive",
@@ -121,7 +124,7 @@ export default function SignupPage() {
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
-            href="/login"
+            href={`/login${redirectTo ? `?redirectTo=${redirectTo}` : ''}`}
             className="font-semibold text-primary hover:underline"
           >
             Sign in

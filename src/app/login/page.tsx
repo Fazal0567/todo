@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -29,6 +29,9 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo");
+
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,8 +53,8 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      router.push("/");
-      router.refresh(); // To reflect login state
+      router.push(redirectTo || "/");
+      router.refresh(); 
     } else {
       toast({
         variant: "destructive",
@@ -121,7 +124,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
           <Link
-            href="/signup"
+            href={`/signup${redirectTo ? `?redirectTo=${redirectTo}` : ''}`}
             className="font-semibold text-primary hover:underline"
           >
             Sign up
