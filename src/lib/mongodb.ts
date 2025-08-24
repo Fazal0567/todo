@@ -1,9 +1,7 @@
-"use server";
-
 import { MongoClient } from 'mongodb';
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+  throw new Error('Invalid/Missing environment variable: "MONGODB_URI". Please check your .env file.');
 }
 
 const uri = process.env.MONGODB_URI;
@@ -20,14 +18,25 @@ if (process.env.NODE_ENV === 'development') {
   }
 
   if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
+    try {
+      client = new MongoClient(uri, options);
+      globalWithMongo._mongoClientPromise = client.connect();
+    } catch (e) {
+      console.error("Failed to connect to MongoDB", e);
+      throw new Error("Failed to connect to MongoDB. Please ensure the database server is running and the MONGODB_URI is correct.");
+    }
   }
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
   // In production mode, it's best to not use a global variable.
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  try {
+    client = new MongoClient(uri, options);
+    clientPromise = client.connect();
+  } catch (e) { {
+      console.error("Failed to connect to MongoDB", e);
+      throw new Error("Failed to connect to MongoDB. Please ensure the database server is running and the MONGODB_URI is correct.");
+    }
+  }
 }
 
 // Export a module-scoped MongoClient promise. By doing this in a
