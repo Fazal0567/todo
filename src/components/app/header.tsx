@@ -52,7 +52,7 @@ export function AppHeader({
     await logout();
     router.push("/login");
     router.refresh();
-     toast({
+    toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
@@ -133,4 +133,3 @@ export function AppHeader({
     </>
   );
 }
-
