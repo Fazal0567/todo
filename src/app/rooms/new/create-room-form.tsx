@@ -41,7 +41,7 @@ export function CreateRoomForm() {
       } catch (error) {
         toast({
           variant: "destructive",
-          title: "Error",
+          title: "Error Creating Room",
           description: (error as Error).message,
         });
       }

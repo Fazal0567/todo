@@ -42,6 +42,13 @@ export async function createRoom(name: string) {
 
   try {
     const collection = await getRoomsCollection();
+    
+    // Check if a room with the same name already exists for this user
+    const existingRoom = await collection.findOne({ name, userIds: session.userId });
+    if (existingRoom) {
+      throw new Error(`You already have a room named "${name}".`);
+    }
+
     const newRoom: RoomDocument = {
       name,
       userIds: [session.userId],
@@ -57,6 +64,10 @@ export async function createRoom(name: string) {
     }
   } catch (error) {
     console.error("Database Error: Failed to create room.", error);
+    // Re-throw the error to be caught by the client
+    if (error instanceof Error) {
+        throw new Error(error.message);
+    }
     throw new Error("Could not create room.");
   }
 }
@@ -98,10 +109,15 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
 
   try {
     const collection = await getRoomsCollection();
-    const room = await collection.findOne({ _id: new ObjectId(roomId), userIds: session.userId });
+    const roomToUpdate = await collection.findOne({ _id: new ObjectId(roomId) });
 
-    // Allow user to add themselves without being a member yet
-    if (!room && session.email !== userEmail) {
+    if (!roomToUpdate) {
+        return { success: false, error: "Room not found." };
+    }
+    
+    // Check if the current user is a member, which gives them permission to add others.
+    // The exception is if a user is adding themselves (which happens on first join).
+    if (!roomToUpdate.userIds.includes(session.userId) && session.email !== userEmail) {
       return { success: false, error: "You do not have permission to add users to this room." };
     }
     
@@ -110,7 +126,7 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
         return { success: false, error: `User with email "${userEmail}" not found.` };
     }
 
-    if (room && room.userIds.includes(userToAdd.id)) {
+    if (roomToUpdate.userIds.includes(userToAdd.id)) {
       // This is not an error, just means they are already in.
       // We can return success to allow the page to load for them.
       return { success: true, message: "User is already in this room." };
