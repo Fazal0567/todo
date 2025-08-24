@@ -139,7 +139,7 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
     }
     
     const userToAddId = userToAdd._id.toHexString();
-    if (roomToUpdate.userIds.includes(userToAddId)) {
+    if (roomToTUpdate.userIds.includes(userToAddId)) {
       // This is not an error, just means they are already in.
       // We can return success to allow the page to load for them.
       return { success: true, message: "User is already in this room." };
@@ -150,7 +150,8 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
       { $addToSet: { userIds: userToAddId } }
     );
     
-    revalidatePath(`/rooms/${roomId}`);
+    // NOTE: Removed `revalidatePath` from here as it was causing a render-time error.
+    // The page will get the fresh data on the subsequent `getRoom` and `getTasks` calls anyway.
     return { success: true, message: "User added successfully." };
     
   } catch (error) {
