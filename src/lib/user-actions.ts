@@ -27,18 +27,14 @@ export async function createUser(userData: Omit<User, "id">) {
   return result;
 }
 
-export async function getUserByEmail(email: string): Promise<(User & { _id: ObjectId }) | null> {
+export async function getUserByEmail(email: string): Promise<(UserDocument & { _id: ObjectId }) | null> {
   const collection = await getUsersCollection();
   // Ensure we also get the password field
   const user = await collection.findOne({ email });
 
   if (!user) return null;
 
-  return {
-    ...user,
-    id: user._id.toHexString(),
-    password: user.password,
-  };
+  return user;
 }
 
 export async function getUserById(userId: string): Promise<User | null> {

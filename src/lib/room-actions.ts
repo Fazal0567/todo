@@ -37,7 +37,7 @@ function toRoomObject(doc: WithId<RoomDocument>): Room {
 export async function createRoom(name: string) {
   const session = await getSession();
   if (!session) {
-    return { success: false, error: "Authentication required." };
+    return { error: "Authentication required." };
   }
 
   try {
@@ -46,7 +46,7 @@ export async function createRoom(name: string) {
     // Check if a room with the same name already exists for this user
     const existingRoom = await collection.findOne({ name, userIds: session.userId });
     if (existingRoom) {
-      return { success: false, error: `You already have a room named "${name}".` };
+      return { error: `You already have a room named "${name}".` };
     }
 
     const newRoom: RoomDocument = {
@@ -56,18 +56,27 @@ export async function createRoom(name: string) {
     const result = await collection.insertOne(newRoom);
     
     if (!result.insertedId) {
-       return { success: false, error: "Failed to create room." };
+       return { error: "Failed to create room." };
     }
     
     const newRoomId = result.insertedId.toHexString();
     revalidatePath("/");
     revalidatePath(`/rooms/${newRoomId}`);
-    redirect(`/rooms/${newRoomId}`);
-
+    // No return needed because redirect will trigger
   } catch (error) {
     console.error("Database Error: Failed to create room.", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-    return { success: false, error: errorMessage };
+    return { error: errorMessage };
+  }
+
+  // This should be outside the try-catch block if the redirect is intended to happen
+  // only after a successful creation and no error was returned.
+  // However, since we are redirecting from the server, we don't need to return anything on success.
+  // The 'no return' will be handled by the form. Let's move the redirect to the end.
+  const rooms = await getUserRooms(session.userId);
+  const newRoom = rooms.find(r => r.name === name);
+  if(newRoom) {
+    redirect(`/rooms/${newRoom.id}`);
   }
 }
 
@@ -114,9 +123,13 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
         return { success: false, error: "Room not found." };
     }
     
-    // Check if the current user is a member, which gives them permission to add others.
-    // The exception is if a user is adding themselves (which happens on first join).
-    if (!roomToUpdate.userIds.includes(session.userId) && session.email !== userEmail) {
+    // Allow adding a user if:
+    // 1. The person doing the adding is already in the room.
+    // 2. The person being added is the same as the person logged in (i.e., joining via link).
+    const isMember = roomToUpdate.userIds.includes(session.userId);
+    const isAddingSelf = session.email === userEmail;
+
+    if (!isMember && !isAddingSelf) {
       return { success: false, error: "You do not have permission to add users to this room." };
     }
     
@@ -124,8 +137,9 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
     if (!userToAdd) {
         return { success: false, error: `User with email "${userEmail}" not found.` };
     }
-
-    if (roomToUpdate.userIds.includes(userToAdd.id)) {
+    
+    const userToAddId = userToAdd._id.toHexString();
+    if (roomToUpdate.userIds.includes(userToAddId)) {
       // This is not an error, just means they are already in.
       // We can return success to allow the page to load for them.
       return { success: true, message: "User is already in this room." };
@@ -133,7 +147,7 @@ export async function addUserToRoom(roomId: string, userEmail: string): Promise<
 
     await collection.updateOne(
       { _id: new ObjectId(roomId) },
-      { $addToSet: { userIds: userToAdd.id } }
+      { $addToSet: { userIds: userToAddId } }
     );
     
     revalidatePath(`/rooms/${roomId}`);
