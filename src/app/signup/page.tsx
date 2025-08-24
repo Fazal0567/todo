@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,13 +21,14 @@ import { signup } from "@/lib/auth-actions";
 import Link from "next/link";
 import { Logo } from "@/components/app/logo";
 
-
+// ---------------- schema ----------------
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
 });
 
-export default function SignupPage() {
+// ---------------- inner form ----------------
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo");
@@ -54,7 +54,7 @@ export default function SignupPage() {
         title: "Signup Successful",
         description: "You can now log in with your credentials.",
       });
-      router.push(`/login${redirectTo ? `?redirectTo=${redirectTo}` : ''}`);
+      router.push(`/login${redirectTo ? `?redirectTo=${redirectTo}` : ""}`);
     } else {
       toast({
         variant: "destructive",
@@ -64,6 +64,67 @@ export default function SignupPage() {
     }
   }
 
+  return (
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    {...field}
+                    disabled={isLoading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    {...field}
+                    disabled={isLoading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Create Account"}
+          </Button>
+        </form>
+      </Form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link
+          href={`/login${redirectTo ? `?redirectTo=${redirectTo}` : ""}`}
+          className="font-semibold text-primary hover:underline"
+        >
+          Sign in
+        </Link>
+      </p>
+    </>
+  );
+}
+
+// ---------------- page wrapper ----------------
+export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
@@ -78,58 +139,10 @@ export default function SignupPage() {
             Get started with CollabTaskAI for free.
           </p>
         </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="user@example.com"
-                      {...field}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      {...field}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
-        </Form>
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link
-            href={`/login${redirectTo ? `?redirectTo=${redirectTo}` : ''}`}
-            className="font-semibold text-primary hover:underline"
-          >
-            Sign in
-          </Link>
-        </p>
+
+        <Suspense fallback={<div>Loading signup form...</div>}>
+          <SignupForm />
+        </Suspense>
       </div>
     </div>
   );
