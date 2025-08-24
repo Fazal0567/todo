@@ -13,17 +13,24 @@ import {
 } from "@/ai/flows/suggest-task-priority";
 import { summarizeTasks } from "@/ai/flows/summarize-tasks";
 import type { Task } from "./types";
+import dotenv from 'dotenv';
 
 let tasksCollection: Collection<Omit<Task, 'id'>>;
 
 async function getTasksCollection() {
+  dotenv.config();
   if (tasksCollection) {
     return tasksCollection;
   }
-  const client = await clientPromise;
-  const db = client.db();
-  tasksCollection = db.collection<Omit<Task, 'id'>>("tasks");
-  return tasksCollection;
+  try {
+    const client = await clientPromise;
+    const db = client.db();
+    tasksCollection = db.collection<Omit<Task, 'id'>>("tasks");
+    return tasksCollection;
+  } catch (error) {
+     console.error("Database connection failed:", error);
+     throw new Error("Could not connect to the database. Please ensure it is running and the connection URI is correct.");
+  }
 }
 
 export async function getTasks(): Promise<Task[]> {
