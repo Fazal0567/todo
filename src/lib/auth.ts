@@ -36,7 +36,7 @@ export async function decrypt(input: string): Promise<SessionPayload | null> {
 
 // This function is intended for server-side use where database access is safe.
 export async function getSession(): Promise<SessionPayload | null> {
-  const sessionCookie = cookies().get("session")?.value;
+  const sessionCookie = (await cookies()).get("session")?.value;
   if (!sessionCookie) return null;
 
   return await decrypt(sessionCookie);

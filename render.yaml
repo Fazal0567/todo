@@ -1,0 +1,34 @@
+# Blueprint for deploying the Next.js application on Render.
+# See https://render.com/docs/blueprint-spec for more details.
+
+services:
+  # A Web Service for the Next.js application
+  - type: web
+    name: collab-task-ai
+    # The runtime environment for the service
+    env: node
+    # The Render instance plan (free tier is a good starting point)
+    plan: free
+    # The command to install dependencies and build the application for production
+    buildCommand: "npm install && npm run build"
+    # The command to start the application server
+    startCommand: "npm start"
+    # Set the health check path to the root of the app
+    healthCheckPath: /
+    # Environment variables required by the application
+    envVars:
+      # The connection string for your MongoDB database.
+      # You will need to set this value in your Render dashboard.
+      - key: MONGODB_URI
+        sync: false
+      # A secret key for signing user sessions.
+      # Render will automatically generate a secure, random value for this.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Your Google AI Gemini API Key.
+      # You will need to set this value in your Render dashboard.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Ensures Next.js runs in production mode.
+      - key: NODE_ENV
+        value: production

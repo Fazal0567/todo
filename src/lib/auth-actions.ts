@@ -34,7 +34,7 @@ export async function createSession(userId: string) {
 
   const session = await encrypt(sessionPayload); // must return a string
 
-  cookies().set("session", session, {
+  (await cookies()).set("session", session, {
     expires,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -57,7 +57,7 @@ export async function login(credentials: unknown) {
       return { success: false, error: "No user found with this email." };
     }
 
-    const match = await bcrypt.compare(password, user.password); // ✅ FIXED
+    const match = bcrypt.compare(password, user.password); // ✅ FIXED
     if (!match) {
       return { success: false, error: "Invalid password." };
     }
