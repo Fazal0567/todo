@@ -9,21 +9,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AddRoomDialog } from "@/components/app/add-room-dialog";
 import { getUserRooms } from "@/lib/room-actions";
 import { CreateRoomForm } from "./create-room-form";
 import Link from "next/link";
+import { getNotifications } from "@/lib/notification-actions";
 
 export default async function NewRoomPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/login");
+    redirect("/login?redirectTo=/rooms/new");
   }
 
-  const rooms = await getUserRooms(session.userId);
+  const [rooms, notifications] = await Promise.all([
+    getUserRooms(session.userId),
+    getNotifications(session.userId),
+  ]);
 
   return (
-    <AppShell rooms={rooms} tasks={[]} session={session}>
+    <AppShell rooms={rooms} tasks={[]} session={session} notifications={notifications}>
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>

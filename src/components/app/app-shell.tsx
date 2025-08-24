@@ -41,13 +41,13 @@ export function AppShell({
   rooms,
   tasks,
   session,
-  notifications
+  notifications = [] // Default to an empty array
 }: {
   children: React.ReactNode;
   rooms: Room[];
   tasks: Task[];
   session: Session | null;
-  notifications: Notification[];
+  notifications?: Notification[]; // Make prop optional
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -60,8 +60,8 @@ export function AppShell({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
-    router.push("/login");
-    router.refresh();
+    // A hard redirect is better to ensure all state is cleared.
+    window.location.href = "/login";
   };
   
    const handleShare = () => {
