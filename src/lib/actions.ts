@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Collection, ObjectId } from "mongodb";
+import { Collection, ObjectId, WithId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import {
   createTaskFromNaturalLanguage,
@@ -15,7 +15,10 @@ import { summarizeTasks } from "@/ai/flows/summarize-tasks";
 import type { Task } from "./types";
 import dotenv from 'dotenv';
 
-let tasksCollection: Collection<Omit<Task, 'id'>>;
+// A type for the task document stored in MongoDB, which uses _id
+type TaskDocument = Omit<Task, 'id'>;
+
+let tasksCollection: Collection<TaskDocument>;
 
 async function getTasksCollection() {
   if (tasksCollection) {
@@ -24,7 +27,7 @@ async function getTasksCollection() {
   try {
     const client = await clientPromise;
     const db = client.db();
-    tasksCollection = db.collection<Omit<Task, 'id'>>("tasks");
+    tasksCollection = db.collection<TaskDocument>("tasks");
     return tasksCollection;
   } catch (error) {
      console.error("Database connection failed:", error);
@@ -35,10 +38,19 @@ async function getTasksCollection() {
 export async function getTasks(): Promise<Task[]> {
   try {
     const collection = await getTasksCollection();
-    const tasks = await collection.find({}).sort({ _id: -1 }).toArray();
-    return tasks.map(task => ({ ...task, id: task._id.toHexString() }));
+    const tasksFromDb: WithId<TaskDocument>[] = await collection.find({}).sort({ _id: -1 }).toArray();
+    
+    // Manually convert the tasks to plain objects to avoid serialization issues
+    return tasksFromDb.map((task) => {
+      const { _id, ...rest } = task;
+      return {
+        id: _id.toHexString(),
+        ...rest,
+      };
+    });
   } catch (error) {
     console.error("Database Error: Failed to fetch tasks.", error);
+    // In case of an error, return an empty array to prevent the app from crashing.
     return [];
   }
 }

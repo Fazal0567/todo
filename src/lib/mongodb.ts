@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: './.env' });
+dotenv.config({ path: './.env.local' });
 
 if (!process.env.MONGODB_URI) {
   throw new Error('The MONGODB_URI environment variable is missing. Please check your .env file.');
